@@ -97,6 +97,18 @@ const features = [
       { value: '100+', label: 'Events' },
       { value: '24/7', label: 'Tracking' },
     ]
+  },
+  {
+    id: 'network',
+    title: 'Network Analysis',
+    description: 'Money-flow graph analysis and transaction clustering. Identify circular flows, layering, structuring, and shell-company patterns.',
+    icon: '\u2735',
+    path: '/network',
+    color: 'fraud',
+    stats: [
+      { value: 'AI', label: 'Powered' },
+      { value: 'Graph', label: 'Analysis' },
+    ]
   }
 ];
 

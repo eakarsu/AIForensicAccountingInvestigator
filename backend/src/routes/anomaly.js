@@ -2,21 +2,23 @@ const express = require('express');
 const { TransactionAnomaly } = require('../models');
 const { authenticateToken } = require('../middleware/auth');
 const { analyzeAnomaly } = require('../services/openrouter');
+const { paginate } = require('../utils/pagination');
 
 const router = express.Router();
 router.use(authenticateToken);
 
-// Get all
 router.get('/', async (req, res) => {
   try {
-    const items = await TransactionAnomaly.findAll({ order: [['createdAt', 'DESC']] });
-    res.json(items);
+    const result = await paginate(TransactionAnomaly, req.query, {
+      searchable: ['transaction_id', 'account_name', 'category', 'counterparty', 'anomaly_type', 'risk_level', 'status'],
+      allowedSort: ['createdAt', 'amount', 'transaction_date', 'anomaly_score', 'risk_level']
+    });
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get by id
 router.get('/:id', async (req, res) => {
   try {
     const item = await TransactionAnomaly.findByPk(req.params.id);
@@ -27,7 +29,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create
 router.post('/', async (req, res) => {
   try {
     const item = await TransactionAnomaly.create(req.body);
@@ -37,7 +38,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update
 router.put('/:id', async (req, res) => {
   try {
     const item = await TransactionAnomaly.findByPk(req.params.id);
@@ -49,7 +49,6 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete
 router.delete('/:id', async (req, res) => {
   try {
     const item = await TransactionAnomaly.findByPk(req.params.id);
@@ -61,7 +60,6 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// AI Analysis
 router.post('/:id/analyze', async (req, res) => {
   try {
     const item = await TransactionAnomaly.findByPk(req.params.id);

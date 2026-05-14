@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import AIAnalysisDisplay from '../components/AIAnalysisDisplay';
+import Pagination from '../components/Pagination';
+import { resourceApi } from '../services/api';
 
-const API = 'http://localhost:3001/api';
+const benfordApi = resourceApi('benford');
 
-function BenfordAnalysis({ token }) {
+function BenfordAnalysis() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,25 +15,38 @@ function BenfordAnalysis({ token }) {
   const [editItem, setEditItem] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState(null);
+  const [localStats, setLocalStats] = useState(null);
 
-  const headers = { Authorization: `Bearer ${token}` };
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState('');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await axios.get(`${API}/benford`, { headers });
-      setItems(res.data);
+      const res = await benfordApi.list({ page, limit: 12, search });
+      // Backend now returns { data, total, page, totalPages, limit }
+      setItems(res.data?.data || res.data || []);
+      setTotalPages(res.data?.totalPages || 1);
     } catch (err) {
       console.error(err);
     }
     setLoading(false);
-  };
+  }, [page, search]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Debounce search input → reset to page 1.
+  useEffect(() => {
+    const t = setTimeout(() => { setPage(1); fetchData(); }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this analysis?')) return;
     try {
-      await axios.delete(`${API}/benford/${id}`, { headers });
+      await benfordApi.remove(id);
       setSelectedItem(null);
       fetchData();
     } catch (err) {
@@ -43,9 +57,11 @@ function BenfordAnalysis({ token }) {
   const handleAIAnalyze = async (id) => {
     setAiLoading(true);
     setAiResult(null);
+    setLocalStats(null);
     try {
-      const res = await axios.post(`${API}/benford/${id}/analyze`, {}, { headers });
+      const res = await benfordApi.analyze(id);
       setAiResult(res.data.ai_analysis);
+      setLocalStats(res.data.local_stats);
     } catch (err) {
       setAiResult({ error: err.response?.data?.error || 'AI analysis failed' });
     }
@@ -55,9 +71,9 @@ function BenfordAnalysis({ token }) {
   const handleSave = async (formData) => {
     try {
       if (editItem) {
-        await axios.put(`${API}/benford/${editItem.id}`, formData, { headers });
+        await benfordApi.update(editItem.id, formData);
       } else {
-        await axios.post(`${API}/benford`, formData, { headers });
+        await benfordApi.create(formData);
       }
       setShowForm(false);
       setEditItem(null);
@@ -67,16 +83,8 @@ function BenfordAnalysis({ token }) {
     }
   };
 
-  const openEdit = (item) => {
-    setSelectedItem(null);
-    setEditItem(item);
-    setShowForm(true);
-  };
-
-  const openNew = () => {
-    setEditItem(null);
-    setShowForm(true);
-  };
+  const openEdit = (item) => { setSelectedItem(null); setEditItem(item); setShowForm(true); };
+  const openNew = () => { setEditItem(null); setShowForm(true); };
 
   if (loading) return <div className="loading"><div className="spinner"></div>Loading...</div>;
 
@@ -88,6 +96,16 @@ function BenfordAnalysis({ token }) {
           <h1>Benford's Law Analysis</h1>
         </div>
         <button className="btn-new" onClick={openNew}>+ New Analysis</button>
+      </div>
+
+      <div style={{ marginBottom: '1rem' }}>
+        <input
+          type="search"
+          placeholder="Search by company, dataset type, risk level..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ padding: '0.5rem 0.75rem', width: '100%', maxWidth: 420 }}
+        />
       </div>
 
       <div className="data-table-container">
@@ -104,14 +122,14 @@ function BenfordAnalysis({ token }) {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} onClick={() => { setSelectedItem(item); setAiResult(item.ai_analysis); }}>
+              <tr key={item.id} onClick={() => { setSelectedItem(item); setAiResult(item.ai_analysis); setLocalStats(item.ai_analysis?.local_stats || null); }}>
                 <td style={{ fontWeight: 600, color: '#f1f5f9' }}>{item.company_name}</td>
                 <td>{item.dataset_type}</td>
                 <td>{item.total_transactions?.toLocaleString()}</td>
                 <td>
-                  <div>{item.deviation_score?.toFixed(2)}</div>
+                  <div>{item.deviation_score?.toFixed?.(2) ?? item.deviation_score}</div>
                   <div className="score-bar-container">
-                    <div className={`score-bar ${item.risk_level}`} style={{ width: `${Math.min(item.deviation_score * 100, 100)}%` }}></div>
+                    <div className={`score-bar ${item.risk_level}`} style={{ width: `${Math.min((item.deviation_score || 0) * 100, 100)}%` }}></div>
                   </div>
                 </td>
                 <td>{item.conformity_level}</td>
@@ -122,45 +140,35 @@ function BenfordAnalysis({ token }) {
         </table>
       </div>
 
-      {/* Detail Modal */}
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
       {selectedItem && (
-        <div className="modal-overlay" onClick={() => { setSelectedItem(null); setAiResult(null); }}>
+        <div className="modal-overlay" onClick={() => { setSelectedItem(null); setAiResult(null); setLocalStats(null); }}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{selectedItem.company_name}</h2>
-              <button className="btn-close" onClick={() => { setSelectedItem(null); setAiResult(null); }}>&times;</button>
+              <button className="btn-close" onClick={() => { setSelectedItem(null); setAiResult(null); setLocalStats(null); }}>&times;</button>
             </div>
             <div className="modal-body">
               <div className="detail-grid">
-                <div className="detail-item">
-                  <span className="detail-label">Dataset Type</span>
-                  <span className="detail-value">{selectedItem.dataset_type}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Total Transactions</span>
-                  <span className="detail-value">{selectedItem.total_transactions?.toLocaleString()}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Deviation Score</span>
-                  <span className="detail-value">{selectedItem.deviation_score}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Conformity Level</span>
-                  <span className="detail-value">{selectedItem.conformity_level}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Risk Level</span>
-                  <span className={`badge badge-${selectedItem.risk_level}`}>{selectedItem.risk_level}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Status</span>
-                  <span className={`badge badge-${selectedItem.status}`}>{selectedItem.status}</span>
-                </div>
-                <div className="detail-item full-width">
-                  <span className="detail-label">Notes</span>
-                  <span className="detail-value">{selectedItem.notes}</span>
-                </div>
+                <div className="detail-item"><span className="detail-label">Dataset Type</span><span className="detail-value">{selectedItem.dataset_type}</span></div>
+                <div className="detail-item"><span className="detail-label">Total Transactions</span><span className="detail-value">{selectedItem.total_transactions?.toLocaleString()}</span></div>
+                <div className="detail-item"><span className="detail-label">Deviation Score</span><span className="detail-value">{selectedItem.deviation_score}</span></div>
+                <div className="detail-item"><span className="detail-label">Conformity Level</span><span className="detail-value">{selectedItem.conformity_level}</span></div>
+                <div className="detail-item"><span className="detail-label">Risk Level</span><span className={`badge badge-${selectedItem.risk_level}`}>{selectedItem.risk_level}</span></div>
+                <div className="detail-item"><span className="detail-label">Status</span><span className={`badge badge-${selectedItem.status}`}>{selectedItem.status}</span></div>
+                <div className="detail-item full-width"><span className="detail-label">Notes</span><span className="detail-value">{selectedItem.notes}</span></div>
               </div>
+
+              {localStats && (
+                <div className="detail-section" style={{ marginTop: '1rem', padding: '1rem', background: '#0f172a', borderRadius: 8 }}>
+                  <h3 style={{ marginTop: 0 }}>Local Statistical Tests</h3>
+                  <p>χ² statistic: <strong>{localStats.chi_square.statistic}</strong> (df {localStats.chi_square.df}) — {localStats.chi_square.significance}</p>
+                  {localStats.suspicious_digits && localStats.suspicious_digits.length > 0 && (
+                    <p>Suspicious digits (|z| ≥ 2): {localStats.suspicious_digits.map(s => `${s.digit} (z=${s.z_score})`).join(', ')}</p>
+                  )}
+                </div>
+              )}
 
               <AIAnalysisDisplay analysis={aiResult} />
             </div>
@@ -175,7 +183,6 @@ function BenfordAnalysis({ token }) {
         </div>
       )}
 
-      {/* Form Modal */}
       {showForm && (
         <BenfordForm
           item={editItem}
@@ -219,22 +226,10 @@ function BenfordForm({ item, onSave, onClose }) {
         <div className="modal-body">
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
-              <div className="form-group">
-                <label>Company Name</label>
-                <input value={form.company_name} onChange={(e) => setForm({...form, company_name: e.target.value})} required />
-              </div>
-              <div className="form-group">
-                <label>Dataset Type</label>
-                <input value={form.dataset_type} onChange={(e) => setForm({...form, dataset_type: e.target.value})} required />
-              </div>
-              <div className="form-group">
-                <label>Total Transactions</label>
-                <input type="number" value={form.total_transactions} onChange={(e) => setForm({...form, total_transactions: e.target.value})} required />
-              </div>
-              <div className="form-group">
-                <label>Deviation Score (0-1)</label>
-                <input type="number" step="0.01" min="0" max="1" value={form.deviation_score} onChange={(e) => setForm({...form, deviation_score: e.target.value})} required />
-              </div>
+              <div className="form-group"><label>Company Name</label><input value={form.company_name} onChange={(e) => setForm({...form, company_name: e.target.value})} required /></div>
+              <div className="form-group"><label>Dataset Type</label><input value={form.dataset_type} onChange={(e) => setForm({...form, dataset_type: e.target.value})} required /></div>
+              <div className="form-group"><label>Total Transactions</label><input type="number" value={form.total_transactions} onChange={(e) => setForm({...form, total_transactions: e.target.value})} required /></div>
+              <div className="form-group"><label>Deviation Score (0-1)</label><input type="number" step="0.01" min="0" max="1" value={form.deviation_score} onChange={(e) => setForm({...form, deviation_score: e.target.value})} required /></div>
               <div className="form-group">
                 <label>Conformity Level</label>
                 <select value={form.conformity_level} onChange={(e) => setForm({...form, conformity_level: e.target.value})}>
@@ -252,10 +247,7 @@ function BenfordForm({ item, onSave, onClose }) {
                   <option value="critical">Critical</option>
                 </select>
               </div>
-              <div className="form-group full-width">
-                <label>Notes</label>
-                <textarea value={form.notes} onChange={(e) => setForm({...form, notes: e.target.value})} />
-              </div>
+              <div className="form-group full-width"><label>Notes</label><textarea value={form.notes} onChange={(e) => setForm({...form, notes: e.target.value})} /></div>
             </div>
             <div className="form-actions">
               <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>

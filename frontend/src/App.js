@@ -10,7 +10,12 @@ import FinancialRatios from './pages/FinancialRatios';
 import InvestigationReports from './pages/InvestigationReports';
 import AuditLog from './pages/AuditLog';
 import DataImport from './pages/DataImport';
+import NetworkAnalysis from './pages/NetworkAnalysis';
+import AICenter from './pages/AICenter';
+import ExtrasTools from './pages/ExtrasTools'; // Apply pass 5
 import './App.css';
+
+import Batch03Features from './pages/Batch03Features';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -49,7 +54,10 @@ function App() {
         </nav>
         <div className="main-content">
           <Routes>
+          <Route path="/batch03" element={<Batch03Features />} />
             <Route path="/" element={<Dashboard />} />
+            {/* token is no longer threaded as a prop — pages use the central
+                src/services/api client which injects it from localStorage. */}
             <Route path="/benford" element={<BenfordAnalysis token={token} />} />
             <Route path="/anomalies" element={<AnomalyDetection token={token} />} />
             <Route path="/embezzlement" element={<EmbezzlementPatterns token={token} />} />
@@ -58,6 +66,9 @@ function App() {
             <Route path="/reports" element={<InvestigationReports token={token} />} />
             <Route path="/audit" element={<AuditLog token={token} />} />
             <Route path="/import" element={<DataImport token={token} />} />
+            <Route path="/network" element={<NetworkAnalysis />} />
+            <Route path="/ai-center" element={<AICenter />} />
+            <Route path="/extras" element={<ExtrasTools />} />{/* Apply pass 5 */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

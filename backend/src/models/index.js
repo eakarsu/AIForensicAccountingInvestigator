@@ -14,13 +14,18 @@ const sequelize = new Sequelize(
   }
 );
 
-// User model
+// User model — adds password reset + email verification fields. Sequelize
+// `sync({ alter: true })` will add these columns idempotently on next boot.
 const User = sequelize.define('User', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   email: { type: DataTypes.STRING, unique: true, allowNull: false },
   password: { type: DataTypes.STRING, allowNull: false },
   name: { type: DataTypes.STRING, allowNull: false },
-  role: { type: DataTypes.STRING, defaultValue: 'analyst' }
+  role: { type: DataTypes.STRING, defaultValue: 'analyst' },
+  reset_token: { type: DataTypes.STRING, allowNull: true },
+  reset_token_expires: { type: DataTypes.DATE, allowNull: true },
+  email_verified: { type: DataTypes.BOOLEAN, defaultValue: false },
+  verification_token: { type: DataTypes.STRING, allowNull: true }
 }, { tableName: 'users', timestamps: true });
 
 // Benford Analysis model
@@ -122,14 +127,23 @@ const InvestigationReport = sequelize.define('InvestigationReport', {
   evidence_summary: { type: DataTypes.JSONB },
   period_start: { type: DataTypes.DATE },
   period_end: { type: DataTypes.DATE },
-  total_amount_at_risk: { type: DataTypes.DECIMAL(15, 2) }
+  total_amount_at_risk: { type: DataTypes.DECIMAL(15, 2) },
+  // AI-generated fields
+  entity_name: { type: DataTypes.STRING },
+  investigation_period: { type: DataTypes.STRING },
+  ai_narrative: { type: DataTypes.TEXT },
+  ai_analysis: { type: DataTypes.TEXT }
 }, { tableName: 'investigation_reports', timestamps: true });
+
+// TransactionAnomaly alias used by some routes
+const AnomalyDetection = TransactionAnomaly;
 
 module.exports = {
   sequelize,
   User,
   BenfordAnalysis,
   TransactionAnomaly,
+  AnomalyDetection,
   EmbezzlementPattern,
   FraudScore,
   AuditLog,

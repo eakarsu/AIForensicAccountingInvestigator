@@ -136,4 +136,106 @@ router.post('/calculate', (req, res) => {
   }
 });
 
+// POST /api/ratios/interpret — AI interpretation of financial ratio combinations
+router.post('/interpret', async (req, res) => {
+  try {
+    const ratioData = calculateRatios(req.body);
+    const { callOpenRouter } = require('../services/openrouter');
+
+    const systemPrompt = `You are a forensic accounting expert specializing in financial ratio analysis and fraud detection. Analyze the provided financial ratios and return a JSON risk narrative:
+{
+  "risk_narrative": "<2-3 paragraph forensic interpretation>",
+  "red_flags": ["flag1", "flag2"],
+  "manipulation_indicators": ["indicator1"],
+  "peer_comparison": "<comparison to industry norms>",
+  "dso_analysis": "<accounts receivable days analysis if data available>",
+  "overall_risk_rating": "critical|high|medium|low",
+  "investigation_priority": "immediate|high|normal",
+  "recommended_audit_procedures": ["procedure1", "procedure2"],
+  "confidence": "high|medium|low"
+}`;
+
+    const userMessage = `Interpret these financial ratios for forensic accounting purposes:
+
+Input Data: ${JSON.stringify(req.body)}
+
+Calculated Ratios:
+Liquidity: ${JSON.stringify(ratioData.ratios.liquidity)}
+Profitability: ${JSON.stringify(ratioData.ratios.profitability)}
+Leverage: ${JSON.stringify(ratioData.ratios.leverage)}
+Efficiency: ${JSON.stringify(ratioData.ratios.efficiency)}
+
+Initial Risk Assessment: ${ratioData.risk_assessment}
+Red Flags Detected: ${ratioData.red_flags.join(', ') || 'None'}`;
+
+    const result = await callOpenRouter(systemPrompt, userMessage);
+
+    if (result.error) {
+      return res.status(502).json({ error: result.error, ratios: ratioData });
+    }
+
+    res.json({ ratios: ratioData, ai_interpretation: result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ratios/cross-case-correlation — AI cross-case pattern correlation engine
+router.post('/cross-case-correlation', async (req, res) => {
+  try {
+    const { case_ids } = req.body;
+    if (!case_ids || !Array.isArray(case_ids) || case_ids.length < 2) {
+      return res.status(400).json({ error: 'At least 2 case_ids required for cross-case correlation' });
+    }
+
+    const { BenfordAnalysis, AnomalyDetection, EmbezzlementPattern, FraudScore } = require('../models');
+    const { Op } = require('sequelize');
+    const { callOpenRouter } = require('../services/openrouter');
+
+    // Fetch all recent records to find correlations
+    const [benfordAll, anomalyAll, embezzlementAll, fraudAll] = await Promise.all([
+      BenfordAnalysis.findAll({ order: [['createdAt', 'DESC']], limit: 50 }),
+      AnomalyDetection.findAll({ order: [['createdAt', 'DESC']], limit: 50 }),
+      EmbezzlementPattern.findAll({ order: [['createdAt', 'DESC']], limit: 50 }),
+      FraudScore.findAll({ order: [['createdAt', 'DESC']], limit: 50 })
+    ]);
+
+    const systemPrompt = `You are a senior forensic investigator specializing in cross-case pattern correlation. Identify shared patterns, suspects, accounts, and behavioral indicators across multiple investigations. Return JSON:
+{
+  "shared_suspects": ["name1", "name2"],
+  "shared_accounts": ["account1"],
+  "common_time_periods": ["period1"],
+  "behavioral_patterns": ["pattern1", "pattern2"],
+  "correlation_strength": "strong|moderate|weak",
+  "linked_scheme_type": "<type of fraud scheme if detectable>",
+  "total_estimated_exposure": <number>,
+  "key_correlations": [
+    { "finding": "<correlation>", "cases_involved": ["case1"], "significance": "high|medium|low" }
+  ],
+  "recommended_investigation_steps": ["step1", "step2"],
+  "summary": "<narrative of cross-case connections>"
+}`;
+
+    const userMessage = `Perform cross-case correlation analysis for ${case_ids.length} investigations.
+
+Benford Analyses: ${JSON.stringify(benfordAll.map(b => ({ company: b.company_name, score: b.deviation_score, conformity: b.conformity_level })))}
+
+Anomaly Detections: ${JSON.stringify(anomalyAll.map(a => ({ account: a.account_name, amount: a.amount, type: a.anomaly_type, counterparty: a.counterparty })))}
+
+Embezzlement Patterns: ${JSON.stringify(embezzlementAll.map(e => ({ suspect: e.suspect_name, department: e.department, amount: e.estimated_loss, period: `${e.period_start} to ${e.period_end}` })))}
+
+Fraud Scores: ${JSON.stringify(fraudAll.map(f => ({ company: f.company_name, year: f.fiscal_year, score: f.overall_score, beneish: f.beneish_m_score })))}`;
+
+    const result = await callOpenRouter(systemPrompt, userMessage);
+
+    if (result.error) {
+      return res.status(502).json({ error: result.error });
+    }
+
+    res.json({ correlation: result, cases_analyzed: case_ids.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
