@@ -16,6 +16,7 @@ import ExtrasTools from './pages/ExtrasTools'; // Apply pass 5
 import './App.css';
 
 import Batch03Features from './pages/Batch03Features';
+import CustomViewsPage from './pages/CustomViewsPage';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -69,6 +70,7 @@ function App() {
             <Route path="/network" element={<NetworkAnalysis />} />
             <Route path="/ai-center" element={<AICenter />} />
             <Route path="/extras" element={<ExtrasTools />} />{/* Apply pass 5 */}
+            <Route path="/custom-views" element={<CustomViewsPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

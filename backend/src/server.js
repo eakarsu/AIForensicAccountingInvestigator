@@ -102,6 +102,9 @@ app.use('/api/related-party-analysis', require('./routes/relatedPartyAnalysis'))
 app.use('/api/restatement-prediction', require('./routes/restatementPrediction'));
 app.use('/api/regulatory-filing-diff', require('./routes/regulatoryFilingDiff'));
 
+// Custom Views — mounted BEFORE any 404 / error handler.
+app.use('/api/custom-views', require('../routes/customViews'));
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
