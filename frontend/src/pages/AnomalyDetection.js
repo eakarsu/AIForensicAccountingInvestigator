@@ -19,8 +19,10 @@ function AnomalyDetection({ token }) {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(`${API}/anomalies`, { headers });
-      setItems(res.data);
+      // Backend now returns { data, total, page, totalPages, limit }.
+      // Accept both shapes so the page works against old and new APIs.
+      const res = await axios.get(`${API}/anomalies`, { headers, params: { limit: 100 } });
+      setItems(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) { console.error(err); }
     setLoading(false);
   };

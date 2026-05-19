@@ -19,8 +19,9 @@ function EmbezzlementPatterns({ token }) {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(`${API}/embezzlement`, { headers });
-      setItems(res.data);
+      // Backend now returns { data, total, page, totalPages, limit }.
+      const res = await axios.get(`${API}/embezzlement`, { headers, params: { limit: 100 } });
+      setItems(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) { console.error(err); }
     setLoading(false);
   };
