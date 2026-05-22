@@ -13,10 +13,16 @@ import DataImport from './pages/DataImport';
 import NetworkAnalysis from './pages/NetworkAnalysis';
 import AICenter from './pages/AICenter';
 import ExtrasTools from './pages/ExtrasTools'; // Apply pass 5
+import ShellCompanyLinkage from './pages/ShellCompanyLinkage';
 import './App.css';
 
 import Batch03Features from './pages/Batch03Features';
 import CustomViewsPage from './pages/CustomViewsPage';
+
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
+import TimelineView from './pages/TimelineView';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -55,6 +61,10 @@ function App() {
         </nav>
         <div className="main-content">
           <Routes>
+        <Route path="/insights/timeline" element={<TimelineView />} />
+        <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
+        <Route path="/codex/operations" element={<CodexOperationsFeature />} />
+
           <Route path="/batch03" element={<Batch03Features />} />
             <Route path="/" element={<Dashboard />} />
             {/* token is no longer threaded as a prop — pages use the central
@@ -68,6 +78,7 @@ function App() {
             <Route path="/audit" element={<AuditLog token={token} />} />
             <Route path="/import" element={<DataImport token={token} />} />
             <Route path="/network" element={<NetworkAnalysis />} />
+            <Route path="/shell-company-linkage" element={<ShellCompanyLinkage />} />
             <Route path="/ai-center" element={<AICenter />} />
             <Route path="/extras" element={<ExtrasTools />} />{/* Apply pass 5 */}
             <Route path="/custom-views" element={<CustomViewsPage />} />

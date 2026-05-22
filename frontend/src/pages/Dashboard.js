@@ -109,6 +109,18 @@ const features = [
       { value: 'AI', label: 'Powered' },
       { value: 'Graph', label: 'Analysis' },
     ]
+  },
+  {
+    id: 'shell-company-linkage',
+    title: 'Shell Company Linkage',
+    description: 'Connect beneficial ownership, payment rails, invoice metadata, and dormant vendor patterns for shell-company triage.',
+    icon: '\u25C7',
+    path: '/shell-company-linkage',
+    color: 'fraud',
+    stats: [
+      { value: '6', label: 'Linked Vendors' },
+      { value: '81', label: 'Risk Score' },
+    ]
   }
 ];
 

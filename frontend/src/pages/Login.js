@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API = 'http://localhost:3001/api';
+const API = process.env.REACT_APP_API_BASE || 'http://localhost:3001/api';
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState('');

@@ -101,6 +101,7 @@ app.use('/api/time-series-anomaly', require('./routes/timeSeriesAnomaly'));
 app.use('/api/related-party-analysis', require('./routes/relatedPartyAnalysis'));
 app.use('/api/restatement-prediction', require('./routes/restatementPrediction'));
 app.use('/api/regulatory-filing-diff', require('./routes/regulatoryFilingDiff'));
+app.use('/api/shell-company-linkage', require('./routes/shellCompanyLinkage'));
 
 // Custom Views — mounted BEFORE any 404 / error handler.
 app.use('/api/custom-views', require('../routes/customViews'));

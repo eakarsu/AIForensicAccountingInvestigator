@@ -1,0 +1,63 @@
+[
+  {
+    "id": 1,
+    "name": "High Z-Score Anomaly",
+    "type": "anomaly_threshold",
+    "metric": "z_score",
+    "operator": ">",
+    "threshold": 3,
+    "severity": "critical",
+    "enabled": true
+  },
+  {
+    "id": 2,
+    "name": "Benford First-Digit Drift",
+    "type": "benford",
+    "metric": "chi_square",
+    "operator": ">",
+    "threshold": 15.5,
+    "severity": "high",
+    "enabled": true
+  },
+  {
+    "id": 3,
+    "name": "CTR Threshold Avoidance",
+    "type": "anomaly_threshold",
+    "metric": "amount",
+    "operator": "between",
+    "threshold": 9000,
+    "threshold_max": 9999,
+    "severity": "high",
+    "enabled": true
+  },
+  {
+    "id": 4,
+    "name": "Benford Second-Digit Test",
+    "type": "benford",
+    "metric": "second_digit_dev",
+    "operator": ">",
+    "threshold": 0.05,
+    "severity": "medium",
+    "enabled": true
+  },
+  {
+    "id": 5,
+    "name": "Round-Number Frequency",
+    "type": "anomaly_threshold",
+    "metric": "round_pct",
+    "operator": ">",
+    "threshold": 0.35,
+    "severity": "medium",
+    "enabled": false
+  },
+  {
+    "id": 6,
+    "name": "Test Rule",
+    "type": "anomaly_threshold",
+    "metric": "z_score",
+    "operator": ">",
+    "threshold": 2.5,
+    "severity": "medium",
+    "enabled": true
+  }
+]
