@@ -5,6 +5,14 @@ const { callOpenRouter, parseAIJson } = require('../services/openrouter');
 const router = express.Router();
 router.use(authenticateToken);
 
+function partyFrom(transaction) {
+  return String(transaction.from_party || transaction.from || transaction.source_party || transaction.source || '').trim();
+}
+
+function partyTo(transaction) {
+  return String(transaction.to_party || transaction.to || transaction.destination_party || transaction.destination || '').trim();
+}
+
 /**
  * POST /api/network/analyze
  *
@@ -28,8 +36,8 @@ router.post('/analyze', async (req, res) => {
     const outflow = new Map();
     const edgeCount = new Map();
     for (const t of transactions) {
-      const f = String(t.from_party || '').trim();
-      const to = String(t.to_party || '').trim();
+      const f = partyFrom(t);
+      const to = partyTo(t);
       if (!f || !to) continue;
       outflow.set(f, (outflow.get(f) || 0) + Number(t.amount || 0));
       inflow.set(to, (inflow.get(to) || 0) + Number(t.amount || 0));
@@ -124,7 +132,7 @@ router.post('/transaction-cluster', async (req, res) => {
       const amt = Number(t.amount || 0);
       const sizeBucket = amt < 1000 ? 'small' : amt < 10000 ? 'medium' : amt < 100000 ? 'large' : 'huge';
       const dateBucket = (t.date || '').slice(0, 7); // YYYY-MM
-      const fromBucket = (t.from_party || 'UNKNOWN').slice(0, 12);
+      const fromBucket = (partyFrom(t) || 'UNKNOWN').slice(0, 12);
       const key = `${sizeBucket}|${dateBucket}|${fromBucket}`;
       const arr = buckets.get(key) || [];
       arr.push(t);

@@ -54,7 +54,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       token,
       user: { id: user.id, email: user.email, name: user.name, role: user.role, email_verified: user.email_verified },
-      verification_token // dev-mode: surface to caller; in prod email this instead.
+      ...(process.env.EXPOSE_DEMO_TOKENS === 'true' && process.env.NODE_ENV !== 'production' ? { verification_token } : {})
     });
   } catch (error) {
     if (error.name === 'SequelizeUniqueConstraintError') {
@@ -108,7 +108,10 @@ router.post('/forgot-password', async (req, res) => {
     user.reset_token = reset_token;
     user.reset_token_expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     await user.save();
-    res.json({ message: 'If that email exists, a reset link has been sent.', reset_token });
+    res.json({
+      message: 'If that email exists, a reset link has been sent.',
+      ...(process.env.EXPOSE_DEMO_TOKENS === 'true' && process.env.NODE_ENV !== 'production' ? { reset_token } : {})
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

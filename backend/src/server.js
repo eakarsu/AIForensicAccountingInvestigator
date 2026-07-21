@@ -102,6 +102,7 @@ app.use('/api/related-party-analysis', require('./routes/relatedPartyAnalysis'))
 app.use('/api/restatement-prediction', require('./routes/restatementPrediction'));
 app.use('/api/regulatory-filing-diff', require('./routes/regulatoryFilingDiff'));
 app.use('/api/shell-company-linkage', require('./routes/shellCompanyLinkage'));
+app.use('/api/governed-cases', require('./routes/governedCases'));
 
 // Custom Views — mounted BEFORE any 404 / error handler.
 app.use('/api/custom-views', require('../routes/customViews'));
@@ -127,24 +128,7 @@ async function start() {
     await sequelize.authenticate();
     // eslint-disable-next-line no-console
     console.log('Database connected successfully');
-    // Only auto-alter in non-production to avoid silent destructive changes.
-    // In production, run migrations explicitly out-of-band.
-    if (process.env.NODE_ENV !== 'production') {
-      await sequelize.sync({ alter: true });
-      // eslint-disable-next-line no-console
-      console.log('Database synced (dev mode)');
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('Skipping sequelize.sync in production — run migrations manually.');
-    }
-
-    
-// === Batch 03 Gaps & Frontend Mounts ===
-try {
-  const _batch03 = require('../routes/batch03Gaps');
-  if (typeof authenticateToken === 'function') app.use('/api', authenticateToken, _batch03);
-  else app.use('/api', _batch03);
-} catch (_e) { /* batch03 gap routes optional */ }
+    // Schema changes are intentionally out-of-band; use scripts/migrate.sh.
 
 app.listen(PORT, () => {
       // eslint-disable-next-line no-console

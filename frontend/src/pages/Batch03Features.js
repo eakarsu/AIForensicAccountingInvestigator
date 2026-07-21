@@ -2,8 +2,7 @@
 // Auto-generated frontend page (lean v0). Wires Custom Feature Suggestions
 // and Gap endpoints (AI counterparts + non-AI features) to backend routes.
 import React, { useState } from 'react';
-
-const API_BASE = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_URL) || 'http://localhost:4000/api';
+import api from '../services/api';
 
 const FEATURES = [
   { kind: 'cfs', slug: 'cf-agentic-investigator', label: 'Agentic investigator', desc: 'NL prompt + transaction data → multi-analysis report', endpoint: '/cf-agentic-investigator' },
@@ -24,11 +23,6 @@ const FEATURES = [
   { kind: 'gap-non', slug: 'gap-non-no-expert-witness-report-templating', label: 'No expert-witness report templating', desc: 'No expert-witness report templating', endpoint: '/gap-no-expert-witness-report-templating' },
   { kind: 'gap-non', slug: 'gap-non-no-data-visualisation-endpoints-only-raw-report-exports', label: 'No data-visualisation endpoints (only raw report exports)', desc: 'No data-visualisation endpoints (only raw report exports)', endpoint: '/gap-no-data-visualisation-endpoints-only-raw-report-exports' },
 ];
-
-function authHeaders() {
-  const t = (typeof window !== 'undefined') ? localStorage.getItem('token') : null;
-  return { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
-}
 
 export default function Batch03Features() {
   const [active, setActive] = useState(FEATURES[0]?.slug);
@@ -64,14 +58,10 @@ export default function Batch03Features() {
     try {
       let parsed;
       try { parsed = input ? JSON.parse(input) : {}; } catch { parsed = { input }; }
-      const r = await fetch(`${API_BASE}${current.endpoint}`, {
-        method: 'POST', headers: authHeaders(), body: JSON.stringify(parsed)
-      });
-      let body; try { body = await r.json(); } catch { body = { raw: await r.text() }; }
-      if (!r.ok) setError(body.error || `HTTP ${r.status}`);
-      setResults(prev => ({ ...prev, [current.slug]: body }));
+      const r = await api.post(current.endpoint, parsed);
+      setResults(prev => ({ ...prev, [current.slug]: r.data }));
     } catch (e) {
-      setError(String(e.message || e));
+      setError(e.response?.data?.error || String(e.message || e));
     } finally { setLoading(false); }
   }
 

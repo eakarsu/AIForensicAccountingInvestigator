@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import BenfordAnalysis from './pages/BenfordAnalysis';
@@ -23,6 +23,57 @@ import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
 import CodexOperationsFeature from './pages/CodexOperationsFeature';
 
 import TimelineView from './pages/TimelineView';
+
+const navSections = [
+  {
+    title: 'Overview',
+    links: [
+      { to: '/', label: 'Dashboard', end: true },
+    ],
+  },
+  {
+    title: 'Core Analysis',
+    links: [
+      { to: '/benford', label: 'Benford Analysis' },
+      { to: '/anomalies', label: 'Transaction Anomalies' },
+      { to: '/embezzlement', label: 'Embezzlement Patterns' },
+      { to: '/fraud', label: 'Fraud Scoring' },
+      { to: '/ratios', label: 'Financial Ratios' },
+    ],
+  },
+  {
+    title: 'Investigation Ops',
+    links: [
+      { to: '/reports', label: 'Investigation Reports' },
+      { to: '/import', label: 'Data Import' },
+      { to: '/audit', label: 'Audit Log' },
+    ],
+  },
+  {
+    title: 'Graph & Entity',
+    links: [
+      { to: '/network', label: 'Network Analysis' },
+      { to: '/shell-company-linkage', label: 'Shell Company Linkage' },
+      { to: '/insights/timeline', label: 'Investigation Timeline' },
+      { to: '/custom-views', label: 'Custom Views' },
+    ],
+  },
+  {
+    title: 'AI Workbench',
+    links: [
+      { to: '/ai-center', label: 'AI Center' },
+      { to: '/extras', label: 'Extras Tools' },
+      { to: '/batch03', label: 'Batch 03 Features' },
+    ],
+  },
+  {
+    title: 'Codex Lab',
+    links: [
+      { to: '/codex/custom-viz', label: 'Custom Visualization' },
+      { to: '/codex/operations', label: 'Operations' },
+    ],
+  },
+];
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -48,18 +99,49 @@ function App() {
 
   return (
     <Router>
-      <div className="app">
-        <nav className="navbar">
-          <div className="nav-brand">
-            <div className="nav-logo">AI</div>
-            <span className="nav-title">Forensic Accounting Investigator</span>
+      <div className="app app-shell">
+        <aside className="sidebar">
+          <div className="sidebar-brand">
+            <div className="sidebar-logo">AI</div>
+            <div>
+              <div className="sidebar-title">Forensic Accounting</div>
+              <div className="sidebar-subtitle">Investigator</div>
+            </div>
           </div>
-          <div className="nav-right">
+
+          <nav className="sidebar-nav" aria-label="Application navigation">
+            {navSections.map((section) => (
+              <div className="sidebar-section" key={section.title}>
+                <div className="sidebar-section-title">{section.title}</div>
+                {section.links.map((link) => (
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    end={link.end}
+                    className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                  >
+                    <span className="sidebar-link-dot" />
+                    <span>{link.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        <div className="content-shell">
+          <header className="topbar">
+            <div>
+              <div className="topbar-kicker">AI Forensic Accounting Investigator</div>
+              <h1>Investigation Workspace</h1>
+            </div>
+            <div className="nav-right">
             <span className="nav-user">{user?.name}</span>
             <button className="btn-logout" onClick={handleLogout}>Logout</button>
           </div>
-        </nav>
-        <div className="main-content">
+          </header>
+
+          <main className="main-content">
           <Routes>
         <Route path="/insights/timeline" element={<TimelineView />} />
         <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
@@ -84,6 +166,7 @@ function App() {
             <Route path="/custom-views" element={<CustomViewsPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+          </main>
         </div>
       </div>
     </Router>

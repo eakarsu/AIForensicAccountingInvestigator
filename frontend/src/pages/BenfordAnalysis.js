@@ -20,11 +20,12 @@ function BenfordAnalysis() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await benfordApi.list({ page, limit: 12, search });
+      const res = await benfordApi.list({ page, limit: 12, search: debouncedSearch });
       // Backend now returns { data, total, page, totalPages, limit }
       setItems(res.data?.data || res.data || []);
       setTotalPages(res.data?.totalPages || 1);
@@ -32,15 +33,17 @@ function BenfordAnalysis() {
       console.error(err);
     }
     setLoading(false);
-  }, [page, search]);
+  }, [page, debouncedSearch]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Debounce search input → reset to page 1.
   useEffect(() => {
-    const t = setTimeout(() => { setPage(1); fetchData(); }, 300);
+    const t = setTimeout(() => {
+      setPage(1);
+      setDebouncedSearch(search);
+    }, 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const handleDelete = async (id) => {

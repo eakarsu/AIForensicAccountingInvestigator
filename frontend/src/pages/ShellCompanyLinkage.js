@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import api from '../services/api';
 
 function ShellCompanyLinkage() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch('/api/shell-company-linkage', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-    })
-      .then((res) => res.json())
-      .then(setData)
+    api.get('/shell-company-linkage')
+      .then((res) => setData(res.data))
       .catch(() => setData({ error: 'Unable to load shell company linkage.' }));
   }, []);
 

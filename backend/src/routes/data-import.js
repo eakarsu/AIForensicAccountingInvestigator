@@ -7,6 +7,13 @@ router.use(authenticateToken);
 
 const REQUIRED_FIELDS = ['transaction_id', 'account_name', 'amount', 'transaction_date', 'anomaly_type', 'anomaly_score'];
 
+function extractTransactions(body) {
+  if (Array.isArray(body)) return body;
+  if (Array.isArray(body?.transactions)) return body.transactions;
+  if (Array.isArray(body?.rows)) return body.rows;
+  return body;
+}
+
 function validateTransactions(transactions) {
   const errors = [];
 
@@ -32,7 +39,7 @@ function validateTransactions(transactions) {
 // Import transactions
 router.post('/transactions', async (req, res) => {
   try {
-    const transactions = req.body;
+    const transactions = extractTransactions(req.body);
     const validation = validateTransactions(transactions);
 
     if (!validation.valid) {
@@ -49,7 +56,7 @@ router.post('/transactions', async (req, res) => {
 // Validate only
 router.post('/validate', (req, res) => {
   try {
-    const transactions = req.body;
+    const transactions = extractTransactions(req.body);
     const validation = validateTransactions(transactions);
     res.json(validation);
   } catch (error) {

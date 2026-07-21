@@ -6,12 +6,9 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 const { Pool } = require('pg');
 
+if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required');
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  database: process.env.DB_NAME || 'forensic_accounting',
-  user: process.env.DB_USER || process.env.USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
+  connectionString: process.env.DATABASE_URL,
   max: 10,
   idleTimeoutMillis: 30000,
 });

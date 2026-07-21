@@ -3,6 +3,10 @@ require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 const bcrypt = require('bcryptjs');
 const { sequelize, User, BenfordAnalysis, TransactionAnomaly, EmbezzlementPattern, FraudScore, AuditLog, InvestigationReport } = require('./models');
 
+if (process.env.CONFIRM_DEMO_SEED !== 'yes') {
+  throw new Error('Destructive demo seed refused; use scripts/seed-demo.sh with CONFIRM_DEMO_SEED=yes');
+}
+
 async function seed() {
   try {
     await sequelize.authenticate();
@@ -102,7 +106,7 @@ async function seed() {
     await FraudScore.bulkCreate(fraudData);
     console.log('Fraud scores seeded (15 items)');
 
-    // Seed Audit Logs (10 items)
+    // Seed Audit Logs (15 items)
     const auditData = [
       { user_id: 1, user_name: 'Admin User', action: 'login', entity_type: null, entity_id: null, details: { method: 'password' }, ip_address: '192.168.1.10' },
       { user_id: 2, user_name: 'Jane Analyst', action: 'create', entity_type: 'benford_analysis', entity_id: 1, details: { company_name: 'Acme Corp' }, ip_address: '192.168.1.25' },
@@ -115,10 +119,22 @@ async function seed() {
       { user_id: 2, user_name: 'Jane Analyst', action: 'login', entity_type: null, entity_id: null, details: { method: 'password' }, ip_address: '10.0.0.45' },
       { user_id: 1, user_name: 'Admin User', action: 'create', entity_type: 'investigation_report', entity_id: 1, details: { report_number: 'RPT-2024-001' }, ip_address: '192.168.1.10' }
     ];
+    while (auditData.length < 15) {
+      const n = auditData.length + 1;
+      auditData.push({
+        user_id: n % 2 === 0 ? 2 : 1,
+        user_name: n % 2 === 0 ? 'Jane Analyst' : 'Admin User',
+        action: ['review', 'export', 'update', 'analyze', 'comment'][n % 5],
+        entity_type: ['benford_analysis', 'transaction_anomaly', 'embezzlement_pattern', 'fraud_score', 'investigation_report'][n % 5],
+        entity_id: n,
+        details: { case_reference: `FAI-${String(n).padStart(3, '0')}`, source: 'seeded forensic workspace' },
+        ip_address: `192.168.1.${20 + n}`,
+      });
+    }
     await AuditLog.bulkCreate(auditData);
-    console.log('Audit logs seeded (10 items)');
+    console.log('Audit logs seeded (15 items)');
 
-    // Seed Investigation Reports (8 items)
+    // Seed Investigation Reports (15 items)
     const reportData = [
       { report_number: 'RPT-2024-001', title: 'Acme Corp Accounts Payable Investigation', investigator_name: 'Jane Analyst', status: 'final', priority: 'high', summary: 'Investigation into anomalous accounts payable transactions at Acme Corp.', findings: 'Multiple fictitious vendor payments identified totaling $780,000. Evidence of billing scheme operated by AP manager.', recommendations: 'Terminate implicated employee. Implement dual-approval for vendor creation. Conduct full forensic audit of AP records for past 3 years.', related_cases: ['EMB-2024-002'], evidence_summary: { documents: 45, interviews: 8, bank_records: 12 }, period_start: '2021-03-01', period_end: '2024-02-01', total_amount_at_risk: 780000.00 },
       { report_number: 'RPT-2024-002', title: 'Meridian Holdings Expense Report Fraud', investigator_name: 'Admin User', status: 'final', priority: 'critical', summary: 'Investigation of systematic expense report manipulation at Meridian Holdings.', findings: 'Expense reports fabricated with fictitious receipts. Deviation score of 0.45 confirmed data manipulation.', recommendations: 'Implement automated receipt verification. Require manager sign-off for all expenses above $500.', related_cases: ['EMB-2024-008'], evidence_summary: { documents: 28, interviews: 5, digital_forensics: 3 }, period_start: '2023-06-01', period_end: '2024-05-15', total_amount_at_risk: 145000.00 },
@@ -129,8 +145,34 @@ async function seed() {
       { report_number: 'RPT-2024-007', title: 'Executive Override Controls Assessment', investigator_name: 'Jane Analyst', status: 'final', priority: 'critical', summary: 'Assessment of CEO override of internal controls for personal expenditures.', findings: 'CEO systematically bypassed approval controls over 5-year period. Total unauthorized expenditures exceed $3.5M.', recommendations: 'Board intervention required. Engage legal counsel. Implement controls that cannot be overridden by any single individual.', related_cases: ['EMB-2024-015'], evidence_summary: { documents: 112, override_instances: 89, interviews: 15 }, period_start: '2019-01-01', period_end: '2024-08-30', total_amount_at_risk: 3500000.00 },
       { report_number: 'RPT-2024-008', title: 'Related Party Construction Contract Review', investigator_name: 'Admin User', status: 'review', priority: 'medium', summary: 'Review of construction contract awarded to company owned by CFO relative.', findings: 'Contract pricing 40% above market rates. No competitive bidding process followed.', recommendations: 'Void current contract. Implement mandatory competitive bidding for all contracts above $100K. Review conflict of interest policies.', related_cases: [], evidence_summary: { contracts: 3, market_comparisons: 8, interviews: 4 }, period_start: '2023-06-01', period_end: '2024-04-15', total_amount_at_risk: 890000.00 }
     ];
+    while (reportData.length < 15) {
+      const n = reportData.length + 1;
+      reportData.push({
+        report_number: `RPT-2024-${String(n).padStart(3, '0')}`,
+        title: [
+          'Vendor Master Integrity Review',
+          'Revenue Cutoff Investigation',
+          'Payroll Ghost Employee Review',
+          'Procurement Split-Purchase Analysis',
+          'Bank Reconciliation Exception Review',
+          'Journal Entry Override Assessment',
+          'Travel and Entertainment Misuse Review',
+        ][(n - 9) % 7],
+        investigator_name: n % 2 === 0 ? 'Admin User' : 'Jane Analyst',
+        status: ['draft', 'in_progress', 'review', 'final'][n % 4],
+        priority: ['medium', 'high', 'critical'][n % 3],
+        summary: 'Seeded forensic investigation report with evidence scope, findings, recommendations, and amount-at-risk tracking.',
+        findings: 'Preliminary analytics identified unusual transaction behavior requiring expanded document review and management interviews.',
+        recommendations: 'Preserve source data, expand sample testing, assign accountable remediation owners, and schedule follow-up review.',
+        related_cases: [`EMB-2024-${String(n).padStart(3, '0')}`],
+        evidence_summary: { documents: 20 + n, interviews: 2 + (n % 6), bank_records: 5 + n },
+        period_start: '2023-01-01',
+        period_end: '2024-06-30',
+        total_amount_at_risk: 100000 + (n * 85000),
+      });
+    }
     await InvestigationReport.bulkCreate(reportData);
-    console.log('Investigation reports seeded (8 items)');
+    console.log('Investigation reports seeded (15 items)');
 
     console.log('\n=== Seeding completed successfully ===');
     process.exit(0);

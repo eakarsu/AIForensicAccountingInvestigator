@@ -73,4 +73,12 @@ router.post('/gap-no-evidence-chain-custody-module', buildHandler('gap-non-no-ev
 router.post('/gap-no-expert-witness-report-templating', buildHandler('gap-non-no-expert-witness-report-templating', 'No expert-witness report templating', 'No expert-witness report templating'));
 router.post('/gap-no-data-visualisation-endpoints-only-raw-report-exports', buildHandler('gap-non-no-data-visualisation-endpoints-only-raw-report-exports', 'No data-visualisation endpoints (only raw report exports)', 'No data-visualisation endpoints (only raw report exports)'));
 
+router.post('/cf-agentic-investigator', buildHandler('cf-agentic-investigator', 'Agentic investigator', 'Natural-language prompt plus transaction data should produce a chained forensic analysis report.'));
+router.post('/cf-visualisation', buildHandler('cf-visualisation', 'Visualisation', 'Network graph and forensic visualization of suspicious transactions, parties, and money flows.'));
+router.post('/cf-ml-fraud-detection', buildHandler('cf-ml-fraud-detection', 'ML fraud detection', 'Train or simulate a fraud detection model from historical transactions, then score new transactions.'));
+router.post('/cf-time-series-anomaly', buildHandler('cf-time-series-anomaly', 'Time-series anomaly', 'Detect sudden pattern shifts, unusual spikes, seasonality breaks, and transaction velocity changes.'));
+router.post('/cf-related-party-analysis', buildHandler('cf-related-party-analysis', 'Related-party analysis', 'Find hidden relationships, shared attributes, beneficial owners, and suspicious counterparty connections.'));
+router.post('/cf-restatement-prediction', buildHandler('cf-restatement-prediction', 'Restatement prediction', 'Assess restatement risk from accounting indicators, reporting pressure, control gaps, and financial-ratio drift.'));
+router.post('/cf-regulatory-filing-diff', buildHandler('cf-regulatory-filing-diff', 'Regulatory-filing diff', 'Compare filings across periods and explain suspicious narrative, disclosure, and numeric changes.'));
+
 module.exports = router;
