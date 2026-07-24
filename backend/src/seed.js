@@ -7,6 +7,12 @@ if (process.env.CONFIRM_DEMO_SEED !== 'yes') {
   throw new Error('Destructive demo seed refused; use scripts/seed-demo.sh with CONFIRM_DEMO_SEED=yes');
 }
 
+function requireDemoPassword() {
+  const password = process.env.DEMO_PASSWORD || process.env.SEED_DEMO_PASSWORD || process.env.DEMO_SEED_PASSWORD || '';
+  if (password.length < 12 || password.length > 1024) throw new Error('DEMO_PASSWORD must contain 12-1024 characters');
+  return password;
+}
+
 async function seed() {
   try {
     await sequelize.authenticate();
@@ -15,7 +21,7 @@ async function seed() {
     console.log('Tables created');
 
     // Seed Users
-    const hashedPassword = await bcrypt.hash('password123', 10);
+    const hashedPassword = await bcrypt.hash(requireDemoPassword(), 10);
     await User.bulkCreate([
       { email: 'admin@forensic.com', password: hashedPassword, name: 'Admin User', role: 'admin' },
       { email: 'analyst@forensic.com', password: hashedPassword, name: 'Jane Analyst', role: 'analyst' }
