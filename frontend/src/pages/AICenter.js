@@ -1,3 +1,4 @@
+import GeneratedAiResponse from './GeneratedAiResponse';
 import React, { useState } from 'react';
 import api from '../services/api';
 
@@ -62,9 +63,7 @@ function ResultPanel({ result, error, status, loading }) {
         <span className="ai-badge">AI</span>
         <h3>Result</h3>
       </div>
-      <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem' }}>
-        {JSON.stringify(result, null, 2)}
-      </pre>
+      <GeneratedAiResponse response={result} />
     </div>
   );
 }

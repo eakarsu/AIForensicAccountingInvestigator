@@ -1,3 +1,4 @@
+import GeneratedAiResponse from './GeneratedAiResponse';
 import React, { useState } from 'react';
 import api from '../services/api';
 
@@ -137,9 +138,7 @@ export default function ExtrasTools() {
       )}
       {result && (
         <div className="card" style={{ padding: '12px', marginTop: '16px' }}>
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem' }}>
-            {JSON.stringify(result, null, 2)}
-          </pre>
+          <GeneratedAiResponse response={result} />
         </div>
       )}
     </div>
