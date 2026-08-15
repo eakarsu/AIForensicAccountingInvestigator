@@ -72,5 +72,5 @@ fi
 cleanup(){ kill "${backend_pid:-}" "${frontend_pid:-}" 2>/dev/null || true; }
 trap cleanup EXIT INT TERM
 (cd "$root/backend" && BACKEND_PORT="$api_port" npm start) & backend_pid=$!
-(cd "$root/frontend" && BROWSER=none HOST="${HOST:-127.0.0.1}" PORT="$ui_port" REACT_APP_API_URL="http://127.0.0.1:$api_port/api" npm start) & frontend_pid=$!
+(cd "$root/frontend" && BROWSER=none HOST="${FRONTEND_HOST:-${HOST:-127.0.0.1}}" PORT="$ui_port" REACT_APP_API_URL="http://127.0.0.1:$api_port/api" npm start) & frontend_pid=$!
 wait "$backend_pid" "$frontend_pid"
