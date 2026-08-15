@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import apiBase from '../services/apiBase';
 
 function ForensicReportPanel() {
   const [downloading, setDownloading] = useState(false);
@@ -9,7 +10,6 @@ function ForensicReportPanel() {
     setStatus('');
     try {
       const token = localStorage.getItem('token');
-      const apiBase = process.env.REACT_APP_API_BASE || 'http://localhost:3001/api';
       const res = await fetch(`${apiBase}/custom-views/forensic-report`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

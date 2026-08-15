@@ -36,7 +36,8 @@ elif [ -n "${DEFAULT_EMAIL:-}" ] && [ -n "${DEFAULT_PASSWORD:-}" ]; then
   demo_credentials_email="$DEFAULT_EMAIL"
   demo_credentials_password="$DEFAULT_PASSWORD"
 fi
-if [ "${NODE_ENV:-development}" != production ] && [ "${ENABLE_DEMO_CREDENTIAL_AUTOFILL:-true}" = true ] && [ -n "$demo_credentials_email" ] && [ -n "$demo_credentials_password" ]; then
+demo_credentials_bind_host="${FRONTEND_HOST:-${HOST:-127.0.0.1}}"
+if [ "${NODE_ENV:-development}" != production ] && [ "${ENABLE_DEMO_CREDENTIAL_AUTOFILL:-true}" = true ] && [ "$demo_credentials_bind_host" != "0.0.0.0" ] && [ -n "$demo_credentials_email" ] && [ -n "$demo_credentials_password" ]; then
   export VITE_ENABLE_DEMO_CREDENTIAL_AUTOFILL=true
   export VITE_DEMO_EMAIL="$demo_credentials_email"
   export VITE_DEMO_PASSWORD="$demo_credentials_password"
@@ -52,7 +53,7 @@ else
   export NEXT_PUBLIC_ENABLE_DEMO_CREDENTIAL_AUTOFILL=false
   unset VITE_DEMO_EMAIL VITE_DEMO_PASSWORD REACT_APP_DEMO_EMAIL REACT_APP_DEMO_PASSWORD NEXT_PUBLIC_DEMO_EMAIL NEXT_PUBLIC_DEMO_PASSWORD
 fi
-unset demo_credentials_email demo_credentials_password demo_credentials_project_dir demo_credentials_line demo_credentials_key demo_credentials_value demo_credentials_first demo_credentials_last
+unset demo_credentials_email demo_credentials_password demo_credentials_bind_host demo_credentials_project_dir demo_credentials_line demo_credentials_key demo_credentials_value demo_credentials_first demo_credentials_last
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [[ -f "$root/.env" ]] || { echo 'Missing .env; copy .env.example and configure it.' >&2; exit 1; }
@@ -63,6 +64,9 @@ source "$root/.env"
 set +a
 api_port="${BACKEND_PORT:-${SERVER_PORT:-${PORT:-3001}}}"
 ui_port="${FRONTEND_PORT:-${CLIENT_PORT:-3000}}"
+if [[ -n "${FRONTEND_PUBLIC_ORIGIN:-}" && ",${CORS_ORIGINS:-}," != *",$FRONTEND_PUBLIC_ORIGIN,"* ]]; then
+  export CORS_ORIGINS="${CORS_ORIGINS:+$CORS_ORIGINS,}$FRONTEND_PUBLIC_ORIGIN"
+fi
 [[ "$api_port" != "$ui_port" ]] || { echo "Backend and frontend ports must be distinct." >&2; exit 1; }
 for port in "$api_port" "$ui_port"; do ! lsof -tiTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1 || { echo "Port $port is already in use; refusing to terminate its owner." >&2; exit 1; }; done
 if [[ "${ALLOW_SCHEMA_MIGRATION:-false}" == "true" ]]; then
@@ -72,5 +76,5 @@ fi
 cleanup(){ kill "${backend_pid:-}" "${frontend_pid:-}" 2>/dev/null || true; }
 trap cleanup EXIT INT TERM
 (cd "$root/backend" && BACKEND_PORT="$api_port" npm start) & backend_pid=$!
-(cd "$root/frontend" && BROWSER=none HOST="${FRONTEND_HOST:-${HOST:-127.0.0.1}}" PORT="$ui_port" REACT_APP_API_URL="http://127.0.0.1:$api_port/api" npm start) & frontend_pid=$!
+(cd "$root/frontend" && BROWSER=none HOST="${FRONTEND_HOST:-${HOST:-127.0.0.1}}" PORT="$ui_port" REACT_APP_API_PORT="$api_port" REACT_APP_API_URL="http://127.0.0.1:$api_port/api" npm start) & frontend_pid=$!
 wait "$backend_pid" "$frontend_pid"

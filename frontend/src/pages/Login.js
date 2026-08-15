@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-
-const API = process.env.REACT_APP_API_BASE || 'http://localhost:3001/api';
+import API from '../services/apiBase';
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -64,9 +63,11 @@ function Login({ onLogin }) {
           </button>
         </form>
 
-        <button className="btn-fill" onClick={fillCredentials}>
-          Quick Fill Demo Credentials
-        </button>
+        {process.env.REACT_APP_ENABLE_DEMO_CREDENTIAL_AUTOFILL === 'true' && (
+          <button className="btn-fill" onClick={fillCredentials}>
+            Quick Fill Demo Credentials
+          </button>
+        )}
       </div>
     </div>
   );

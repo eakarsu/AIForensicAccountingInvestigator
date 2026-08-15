@@ -1,4 +1,5 @@
 import axios from 'axios';
+import apiBase from './apiBase';
 
 /**
  * Central axios client for the Forensic Accounting frontend.
@@ -7,11 +8,11 @@ import axios from 'axios';
  * headers manually. Adds a 401/403 interceptor that drops the local session
  * and bounces to /login.
  *
- * Set `REACT_APP_API_BASE` (default http://localhost:3001/api) to point at a
- * remote backend.
+ * `apiBase` uses an explicit REACT_APP_API_BASE when configured; otherwise it
+ * keeps the browser hostname and uses the backend port supplied at startup.
  */
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE || 'http://localhost:3001/api',
+  baseURL: apiBase,
   timeout: 120000, // generous timeout for AI calls
 });
 

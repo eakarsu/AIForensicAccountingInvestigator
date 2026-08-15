@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-const API = 'http://localhost:3001/api';
+import API from '../services/apiBase';
 
 const SAMPLE_CSV = `transaction_id,account_name,amount,transaction_date,category,counterparty,anomaly_type,anomaly_score,description
 TXN-001,Operating Account,15000.00,2024-01-15,Revenue,Acme Corp,none,0.1,Monthly service payment

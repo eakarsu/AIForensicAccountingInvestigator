@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-const API = 'http://localhost:3001/api';
+import API from '../services/apiBase';
 
 function InvestigationReports({ token }) {
   const navigate = useNavigate();

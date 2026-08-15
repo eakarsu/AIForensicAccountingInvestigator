@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-const API = 'http://localhost:3001/api';
+import API from '../services/apiBase';
 
 const sectionStyle = {
   background: 'rgba(15, 23, 42, 0.4)',
