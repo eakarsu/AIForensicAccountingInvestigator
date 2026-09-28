@@ -65,7 +65,7 @@ function Login({ onLogin }) {
 
         {process.env.REACT_APP_ENABLE_DEMO_CREDENTIAL_AUTOFILL === 'true' && (
           <button className="btn-fill" onClick={fillCredentials}>
-            Quick Fill Demo Credentials
+            Auto Fill Demo Credentials
           </button>
         )}
       </div>
