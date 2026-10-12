@@ -1,7 +1,9 @@
 import GeneratedAiResponse from './GeneratedAiResponse';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import api from '../services/api';
 import AIAnalysisDisplay from '../components/AIAnalysisDisplay';
+import NativeAIControls from '../components/NativeAIControls';
+import useNativeAIRequest from '../components/useNativeAIRequest';
 
 /**
  * Frontend for the new module `backend/src/routes/network.js` (mounted at /api/network):
@@ -19,6 +21,15 @@ const SAMPLE_TRANSACTIONS = [
   { id: 'tx_004', from: 'Acme Holdings', to: 'Delta Services', amount: 25000, date: '2026-03-08', source: 'AP' },
   { id: 'tx_005', from: 'Delta Services', to: 'Beta Vendor LLC', amount: 24000, date: '2026-03-09', source: 'AP' },
 ];
+
+const networkHistoryKey = () => {
+  try { return `forensic-network-history:${JSON.parse(localStorage.getItem('user') || '{}').id || 'anonymous'}`; }
+  catch { return 'forensic-network-history:anonymous'; }
+};
+const readNetworkHistory = () => {
+  try { const value = JSON.parse(localStorage.getItem(networkHistoryKey()) || '[]'); return Array.isArray(value) ? value : []; }
+  catch { return []; }
+};
 
 function TransactionsEditor({ transactions, onChange }) {
   const updateRow = (i, field, value) => {
@@ -90,33 +101,62 @@ function NetworkAnalysisStats({ stats }) {
 }
 
 export default function NetworkAnalysis() {
+  const nativeAIRequest = useNativeAIRequest();
   const [tab, setTab] = useState('analyze');
   const [transactions, setTransactions] = useState(SAMPLE_TRANSACTIONS);
   const [bucketBy, setBucketBy] = useState('size');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [result, setResult] = useState(null);
+  const [history, setHistory] = useState(readNetworkHistory);
+  const lastRequest = useRef(null);
+  const presets = ['Small ledger', 'Circular flow', 'Detailed review'].map((name, index) => ({
+    name,
+    fill: () => {
+      const rows = SAMPLE_TRANSACTIONS.slice(0, [2, 3, 5][index]).map((row, position) => ({
+        ...row, id: `example_${index + 1}_${position + 1}`,
+        amount: row.amount * [1, 1.1, 1.25][index],
+      }));
+      setTransactions(rows);
+      setBucketBy(['size', 'month', 'source'][index]);
+      setError(''); setResult(null);
+      return { filled: rows.length * 6 + 1 };
+    },
+  }));
 
   const run = async (path, payload) => {
+    const request = { path, payload };
+    lastRequest.current = request;
     setLoading(true);
     setError('');
+    setNotice('');
     setResult(null);
     try {
-      const res = await api.post(path, payload);
+      const res = await nativeAIRequest.run((signal) => api.post(path, payload, { signal }));
       setResult(res.data);
+      const entry = { id: `${Date.now()}-${path}`, tool: path.endsWith('transaction-cluster') ? 'Transaction Cluster' : 'Money-flow Analysis', generatedAt: new Date().toISOString(), response: res.data };
+      setHistory((currentHistory) => {
+        const next = [entry, ...currentHistory].slice(0, 12);
+        try { localStorage.setItem(networkHistoryKey(), JSON.stringify(next)); } catch (_) { /* storage may be unavailable */ }
+        return next;
+      });
     } catch (err) {
-      setError(err?.response?.data?.error || err.message || 'Request failed');
+      if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') setNotice('Generation cancelled. No output was saved.');
+      else setError(err?.response?.data?.error || err.message || 'Request failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <NativeAIControls presets={presets} busy={nativeAIRequest.busy} onCancel={() => { nativeAIRequest.cancel(); setLoading(false); }} context="transaction graph review">
     <div className="page">
       <div className="page-header">
         <div>
           <h1 className="page-title">Network Analysis</h1>
           <p className="page-subtitle">Money-flow graph analysis and transaction clustering.</p>
+          <p className="page-subtitle">Examples contain fictional ledger entries. Replace them with your evidence before a real investigation.</p>
         </div>
       </div>
 
@@ -137,9 +177,12 @@ export default function NetworkAnalysis() {
             <p style={{ marginTop: 0 }}>
               Sends transactions to <code>POST /api/network/analyze</code>. AI returns suspicious clusters (circular flows, layering, structuring, shell patterns).
             </p>
-            <button className="btn btn-primary" disabled={loading || transactions.length === 0} onClick={() => run('/network/analyze', { transactions })}>
-              {loading ? 'Analyzing...' : 'Run Analysis'}
-            </button>
+            <div className="ai-request-actions">
+              <button className="btn btn-primary" disabled={loading || transactions.length === 0} onClick={() => run('/network/analyze', { transactions })}>
+                {loading ? 'Generating…' : 'Generate with OpenRouter'}
+              </button>
+              {loading && <button type="button" className="btn-cancel" onClick={() => nativeAIRequest.cancel()}>Cancel</button>}
+            </div>
           </>
         )}
 
@@ -156,16 +199,20 @@ export default function NetworkAnalysis() {
                 <option value="source">Source</option>
               </select>
             </div>
-            <button className="btn btn-primary" disabled={loading || transactions.length === 0} onClick={() => run('/network/transaction-cluster', { transactions, bucket_by: bucketBy })}>
-              {loading ? 'Clustering...' : 'Run Clustering'}
-            </button>
+            <div className="ai-request-actions">
+              <button className="btn btn-primary" disabled={loading || transactions.length === 0} onClick={() => run('/network/transaction-cluster', { transactions, bucket_by: bucketBy })}>
+                {loading ? 'Generating…' : 'Generate with OpenRouter'}
+              </button>
+              {loading && <button type="button" className="btn-cancel" onClick={() => nativeAIRequest.cancel()}>Cancel</button>}
+            </div>
           </>
         )}
       </div>
 
+      {notice && <div className="card" role="status" style={{ padding: '12px', marginTop: '16px' }}>{notice}</div>}
       {error && (
-        <div className="card" style={{ padding: '12px', marginTop: '16px', borderColor: '#dc2626', color: '#b91c1c' }}>
-          Error: {error}
+        <div className="card" role="alert" style={{ padding: '12px', marginTop: '16px', borderColor: '#dc2626', color: '#fca5a5' }}>
+          Error: {error} {lastRequest.current && <button type="button" disabled={loading} onClick={() => run(lastRequest.current.path, lastRequest.current.payload)}>Retry</button>}
         </div>
       )}
 
@@ -185,6 +232,11 @@ export default function NetworkAnalysis() {
           )}
         </div>
       )}
+      <section className="ai-history" aria-label="Network AI history">
+        <div className="ai-history-heading"><div><h2>Generation history</h2><p>Successful browser-local outputs. Examples are fictional and every output requires verification.</p></div>{history.length > 0 && <button type="button" onClick={() => { setHistory([]); try { localStorage.removeItem(networkHistoryKey()); } catch (_) { /* ignore */ } }}>Clear history</button>}</div>
+        {history.length === 0 ? <p>No successful generations yet.</p> : history.map((entry) => <details key={entry.id} className="ai-history-item"><summary><strong>{entry.tool}</strong><span>{new Date(entry.generatedAt).toLocaleString()}</span></summary><GeneratedAiResponse response={entry.response} /></details>)}
+      </section>
     </div>
+    </NativeAIControls>
   );
 }

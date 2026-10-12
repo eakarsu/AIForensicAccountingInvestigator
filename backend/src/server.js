@@ -64,6 +64,7 @@ app.use(express.json({ limit: '10mb' }));
 // Rate limits.
 app.use('/api/', generalLimiter);
 app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/demo', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
@@ -104,13 +105,18 @@ app.use('/api/regulatory-filing-diff', require('./routes/regulatoryFilingDiff'))
 app.use('/api/shell-company-linkage', require('./routes/shellCompanyLinkage'));
 app.use('/api/governed-cases', require('./routes/governedCases'));
 
-// Custom Views — mounted BEFORE any 404 / error handler.
-app.use('/api/custom-views', require('../routes/customViews'));
-
-// Health check
-app.get('/api/health', (req, res) => {
+// Keep liveness public and mount it before the authenticated catch-all Batch 03
+// router so infrastructure checks are not mistaken for signed-out AI requests.
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Batch 03 AI workbench. The router enforces authentication and delegates to
+// the same OpenRouter service used by the rest of the application.
+app.use('/api', aiRateLimiter, require('../routes/batch03Gaps'));
+
+// Custom Views — mounted BEFORE any 404 / error handler.
+app.use('/api/custom-views', require('../routes/customViews'));
 
 // Global error handler — keep CORS errors visible.
 app.use((err, req, res, _next) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AIAnalysisDisplay from '../components/AIAnalysisDisplay';
 import Pagination from '../components/Pagination';
@@ -10,10 +10,13 @@ function BenfordAnalysis() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const aiRequest = useRef(null);
   const [aiResult, setAiResult] = useState(null);
   const [localStats, setLocalStats] = useState(null);
 
@@ -24,13 +27,14 @@ function BenfordAnalysis() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const res = await benfordApi.list({ page, limit: 12, search: debouncedSearch });
       // Backend now returns { data, total, page, totalPages, limit }
       setItems(res.data?.data || res.data || []);
       setTotalPages(res.data?.totalPages || 1);
     } catch (err) {
-      console.error(err);
+      setLoadError(err.response?.data?.error || err.message || 'Could not load Benford analyses.');
     }
     setLoading(false);
   }, [page, debouncedSearch]);
@@ -58,17 +62,23 @@ function BenfordAnalysis() {
   };
 
   const handleAIAnalyze = async (id) => {
+    if (aiLoading) return;
+    const controller = new AbortController();
+    aiRequest.current = controller;
     setAiLoading(true);
+    setAiError('');
     setAiResult(null);
     setLocalStats(null);
     try {
-      const res = await benfordApi.analyze(id);
+      const res = await benfordApi.analyze(id, {}, { signal: controller.signal });
       setAiResult(res.data.ai_analysis);
       setLocalStats(res.data.local_stats);
     } catch (err) {
-      setAiResult({ error: err.response?.data?.error || 'AI analysis failed' });
+      setAiError(err.code === 'ERR_CANCELED' || err.name === 'CanceledError' ? 'Generation cancelled. No AI result was saved.' : (err.response?.data?.error || err.message || 'AI analysis failed'));
+    } finally {
+      aiRequest.current = null;
+      setAiLoading(false);
     }
-    setAiLoading(false);
   };
 
   const handleSave = async (formData) => {
@@ -90,6 +100,7 @@ function BenfordAnalysis() {
   const openNew = () => { setEditItem(null); setShowForm(true); };
 
   if (loading) return <div className="loading"><div className="spinner"></div>Loading...</div>;
+  if (loadError) return <div className="loading-error" role="alert"><h2>Benford analyses could not be loaded</h2><p>{loadError}</p><button type="button" className="btn btn-primary" onClick={fetchData}>Retry</button></div>;
 
   return (
     <div>
@@ -176,9 +187,12 @@ function BenfordAnalysis() {
               <AIAnalysisDisplay analysis={aiResult} />
             </div>
             <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => { setSelectedItem(null); setAiResult(null); setLocalStats(null); }}>Cancel</button>
+              {aiError && <p role="alert" className="full-width">{aiError} {!aiLoading && <button type="button" onClick={() => handleAIAnalyze(selectedItem.id)}>Retry</button>}</p>}
               <button className="btn-ai" onClick={() => handleAIAnalyze(selectedItem.id)} disabled={aiLoading}>
-                {aiLoading ? 'Analyzing...' : 'Run AI Analysis'}
+                {aiLoading ? 'Generating…' : 'Generate with OpenRouter'}
               </button>
+              {aiLoading && <button type="button" className="btn-cancel" onClick={() => aiRequest.current?.abort()}>Cancel AI</button>}
               <button className="btn-edit" onClick={() => openEdit(selectedItem)}>Edit</button>
               <button className="btn-delete" onClick={() => handleDelete(selectedItem.id)}>Delete</button>
             </div>

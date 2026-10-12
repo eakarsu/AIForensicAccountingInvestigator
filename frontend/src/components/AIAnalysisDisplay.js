@@ -1,4 +1,5 @@
 import React from 'react';
+import JsonReport from './JsonReport';
 
 function AIAnalysisDisplay({ analysis }) {
   if (!analysis) return null;
@@ -33,7 +34,7 @@ function AIAnalysisDisplay({ analysis }) {
     return (
       <ul className="ai-list">
         {arr.map((item, i) => (
-          <li key={i}>{typeof item === 'object' ? JSON.stringify(item) : item}</li>
+          <li key={i}>{item && typeof item === 'object' ? <JsonReport data={item} title="Finding" /> : item}</li>
         ))}
       </ul>
     );
@@ -46,6 +47,14 @@ function AIAnalysisDisplay({ analysis }) {
         <div className="ai-section">
           <div className="ai-section-title">{label}</div>
           {renderArray(value)}
+        </div>
+      );
+    }
+    if (typeof value === 'object') {
+      return (
+        <div className="ai-section">
+          <div className="ai-section-title">{label}</div>
+          <JsonReport data={value} title={label} />
         </div>
       );
     }

@@ -1,146 +1,31 @@
 import GeneratedAiResponse from './GeneratedAiResponse';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import api from '../services/api';
-
-/**
- * Apply pass 5 (FE) — surface the additive `/api/extras/*` endpoints.
- *
- * Backend: backend/src/routes/extras.js (mounted under /api/extras).
- * Endpoints covered:
- *   - POST /api/extras/ml-fraud-detector/score   (TOO-RISKY heuristic stub)
- *   - POST /api/extras/timeseries-anomaly/detect (MECHANICAL z-score)
- *   - POST /api/extras/restatement-predict       (MECHANICAL signals)
- *   - POST /api/extras/external-screening        (NEEDS-CREDS)
- *   - POST /api/extras/sec-edgar/pull            (NEEDS-CREDS)
- *
- * Auth: api client injects JWT bearer.
- * 503 banner is rendered for endpoints whose required env var is unset.
- */
-
-const TABS = [
-  { id: 'ml-fraud-detector/score', label: 'ML Fraud Score' },
-  { id: 'timeseries-anomaly/detect', label: 'Time Series Anomaly' },
-  { id: 'restatement-predict', label: 'Restatement Predict' },
-  { id: 'external-screening', label: 'External Screening' },
-  { id: 'sec-edgar/pull', label: 'SEC EDGAR' },
-];
-
-const SAMPLE_BY_TAB = {
-  'ml-fraud-detector/score': {
-    transactions: [
-      { id: 't1', amount: 9999, vendor: 'Acme', date: '2025-01-15' },
-      { id: 't2', amount: 9990, vendor: 'Acme', date: '2025-01-16' },
-    ],
-  },
-  'timeseries-anomaly/detect': {
-    series: [100, 102, 101, 99, 98, 250, 102, 101, 99],
-    window: 5,
-  },
-  'restatement-predict': {
-    company: 'Acme Holdings',
-    ratios: { gross_margin: 0.62, dso: 92, accruals_to_assets: 0.18 },
-    auditor_changes: 1,
-  },
-  'external-screening': { entity_name: 'John Doe', entity_type: 'individual' },
-  'sec-edgar/pull': { cik: '0000320193', form: '10-K' },
-};
-
-export default function ExtrasTools() {
-  const [tab, setTab] = useState(TABS[0].id);
-  const [body, setBody] = useState(JSON.stringify(SAMPLE_BY_TAB[TABS[0].id], null, 2));
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState(0);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState(null);
-
-  const onTabChange = (id) => {
-    setTab(id);
-    setBody(JSON.stringify(SAMPLE_BY_TAB[id] || {}, null, 2));
-    setResult(null);
-    setError('');
-    setStatus(0);
-  };
-
-  const submit = async () => {
-    setLoading(true);
-    setError('');
-    setStatus(0);
-    setResult(null);
-    let payload;
-    try {
-      payload = JSON.parse(body || '{}');
-    } catch (e) {
-      setLoading(false);
-      setError('Body is not valid JSON: ' + e.message);
-      return;
-    }
-    try {
-      const res = await api.post(`/extras/${tab}`, payload);
-      setResult(res.data);
-    } catch (err) {
-      setStatus(err?.response?.status || 0);
-      setError(err?.response?.data?.error || err.message || 'Request failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{ padding: '24px' }}>
-      <h1>Extras Tools</h1>
-      <p style={{ color: '#475569', maxWidth: '720px' }}>
-        Backlog endpoints from Apply pass 5. Heavy/external integrations
-        (external screening, SEC EDGAR) return HTTP 503 with{' '}
-        <code>missing</code> when their required env var is unset.
-      </p>
-
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '16px 0' }}>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            className={t.id === tab ? 'btn btn-primary' : 'btn'}
-            onClick={() => onTabChange(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="form-group">
-        <label>Request body (JSON)</label>
-        <textarea
-          rows={12}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          style={{ fontFamily: 'monospace', width: '100%' }}
-        />
-      </div>
-
-      <button className="btn btn-primary" disabled={loading} onClick={submit}>
-        {loading ? 'Running...' : `POST /api/extras/${tab}`}
-      </button>
-
-      {status === 503 && (
-        <div
-          className="card"
-          style={{ padding: '12px', marginTop: '16px', borderColor: '#f59e0b', color: '#92400e' }}
-        >
-          Service not configured. {error}
-        </div>
-      )}
-      {status !== 503 && error && (
-        <div
-          className="card"
-          style={{ padding: '12px', marginTop: '16px', borderColor: '#dc2626', color: '#b91c1c' }}
-        >
-          Error: {error}
-        </div>
-      )}
-      {result && (
-        <div className="card" style={{ padding: '12px', marginTop: '16px' }}>
-          <GeneratedAiResponse response={result} />
-        </div>
-      )}
-    </div>
-  );
+const tools=[{id:'ml-fraud-detector/score',title:'ML Fraud Score',ai:true},{id:'timeseries-anomaly/detect',title:'Time Series Anomaly',ai:true},{id:'restatement-predict',title:'Restatement Predict',ai:true},{id:'external-screening',title:'External Screening'},{id:'sec-edgar/pull',title:'SEC EDGAR'}];
+const labels=['Balanced training','Variance training','Review training'];
+function example(tab,index,current){
+ if(tab==='ml-fraud-detector/score')return {transactions:[{amount:[0,9500,51000][index],counterparty:'Fictional Training Vendor',transaction_date:'2026-10-08',category:['purchase','wire','cash'][index]}],use_ai_summary:true};
+ if(tab==='timeseries-anomaly/detect')return {series:[0,10,11,9,10,[10,100,-10][index],10,11].map((value,i)=>({date:`2026-10-${String(i+1).padStart(2,'0')}`,value})),window:[3,4,5][index],z_threshold:[2,2.5,3][index],use_ai_summary:true};
+ if(tab==='restatement-predict')return {company:'Fictional Training Company '+String.fromCharCode(65+index),red_flags:index?['Fictional reporting-review scenario; no misconduct finding']:[],beneish_m_score:[-2.5,-1.5,0][index],altman_z_score:[3.5,2.5,1.5][index],audit_changes_2y:index,late_filings_2y:index===2?1:0,use_ai_summary:true};
+ if(tab==='external-screening')return {name:current.name||'',country:current.country||'',dob:current.dob||''};
+ return {cik:current.cik||'',form_type:['10-K','10-Q','8-K'][index],limit:[5,10,15][index]};
+}
+const historyKey=()=>{try{return `forensic-ai-history:${JSON.parse(localStorage.getItem('user')||'{}').id||'anonymous'}`;}catch{return 'forensic-ai-history:anonymous';}};
+const readHistory=()=>{try{const value=JSON.parse(localStorage.getItem(historyKey())||'[]');return Array.isArray(value)?value:[];}catch{return [];}};
+export default function ExtrasTools(){
+ const [tab,setTab]=useState(tools[0].id),[body,setBody]=useState('{}'),[loading,setLoading]=useState(false),[error,setError]=useState(''),[result,setResult]=useState(null),[notice,setNotice]=useState(''),[history,setHistory]=useState(readHistory);const pending=useRef(false),requestRef=useRef(null),lastRequest=useRef(null),tool=tools.find(item=>item.id===tab);
+ const fill=index=>{let current={};try{current=JSON.parse(body);}catch{}setBody(JSON.stringify(example(tab,index,current||{}),null,2));setNotice(tool.ai?'All required and optional scenario fields filled with fictional training data. Generate requests an OpenRouter narrative separately. Scores are uncalibrated heuristics.':'Existing identity or CIK source fields are preserved. Supply genuine missing references manually. These integrations remain subject to their native availability gates.');};
+ const runRequest=async request=>{if(pending.current)return;const controller=new AbortController();pending.current=true;requestRef.current=controller;lastRequest.current=request;setLoading(true);setError('');setNotice('');setResult(null);try{const response=await api.post('/extras/'+request.route,request.payload,{signal:controller.signal});setResult(response.data);const entry={id:`${Date.now()}-${request.route}`,tool:request.title,generatedAt:new Date().toISOString(),response:response.data};setHistory(current=>{const next=[entry,...current].slice(0,12);try{localStorage.setItem(historyKey(),JSON.stringify(next));}catch{}return next;});}catch(err){if(err.code==='ERR_CANCELED'||err.name==='CanceledError')setNotice('Request cancelled. No output was saved.');else setError(err.response?.data?.error||err.message||'Request failed');}finally{pending.current=false;requestRef.current=null;setLoading(false);}};
+ const submit=async event=>{event.preventDefault();if(pending.current)return;setError('');try{
+   if(!localStorage.getItem('token'))throw Error('Sign in before running a tool.');
+   const payload=JSON.parse(body);if(!payload||Array.isArray(payload)||typeof payload!=='object')throw Error('Request must be an object.');
+   if(tab==='external-screening'&&!String(payload.name||'').trim())throw Error('Enter a genuine identity to screen.');
+   if(tab==='sec-edgar/pull'&&!/^\d{1,10}$/.test(String(payload.cik||'')))throw Error('Enter a genuine CIK (1–10 digits).');
+   if(tab==='ml-fraud-detector/score'&&(!Array.isArray(payload.transactions)||!payload.transactions.length))throw Error('Provide transactions.');
+   if(tab==='timeseries-anomaly/detect'&&(!Array.isArray(payload.series)||payload.series.length<3||payload.series.some(point=>point.value==null||!Number.isFinite(Number(point.value)))))throw Error('Provide at least three series points with numeric values.');
+   if(tab==='restatement-predict'&&!String(payload.company||'').trim())throw Error('Company is required.');
+   await runRequest({route:tab,title:tool.title,payload});
+ }catch(err){setError(err.response?.data?.error||err.message||'Request failed');}};
+ return <div style={{padding:24}}><h1>Analysis and Integrations</h1><p>Heuristic tools can request an OpenRouter narrative. External integrations show their actual availability; a planned request does not mean screening or filing retrieval has completed.</p><nav className="tabs">{tools.map(item=><button key={item.id} type="button" disabled={loading} onClick={()=>{setTab(item.id);setBody('{}');setResult(null);setError('');setNotice('');}}>{item.title}</button>)}</nav>
+ <form onSubmit={submit}><h2>{tool.title}</h2><div className="ai-preset-bar"><strong>Complete examples</strong>{labels.map((label,index)=><button type="button" key={label} disabled={loading} onClick={()=>fill(index)}>{label}</button>)}{notice&&<p role="status">{notice}</p>}</div><div className="form-group"><label htmlFor="extras-input">Analysis inputs (JSON object)</label><textarea id="extras-input" name="inputs" rows={12} value={body} onChange={e=>setBody(e.target.value)} style={{fontFamily:'monospace',width:'100%'}}/></div>{error&&<p role="alert">{error} {lastRequest.current&&<button type="button" disabled={loading} onClick={()=>runRequest(lastRequest.current)}>Retry</button>}</p>}<div className="ai-request-actions"><button type="submit" disabled={loading||!localStorage.getItem('token')} className="btn btn-primary">{loading?'Running…':tool.ai?'Generate with OpenRouter':'Check integration request'}</button>{loading&&<button type="button" className="btn-cancel" onClick={()=>requestRef.current?.abort()}>Cancel</button>}</div></form>{result!==null&&<GeneratedAiResponse response={result}/>}<section className="ai-history" aria-label="Analysis history"><div className="ai-history-heading"><div><h2>Analysis history</h2><p>Successful outputs for this signed-in browser profile.</p></div>{history.length>0&&<button type="button" onClick={()=>{setHistory([]);try{localStorage.removeItem(historyKey());}catch{}}}>Clear history</button>}</div>{history.length===0?<p>No successful requests yet.</p>:history.map(entry=><details key={entry.id} className="ai-history-item"><summary><strong>{entry.tool}</strong><span>{new Date(entry.generatedAt).toLocaleString()}</span></summary><GeneratedAiResponse response={entry.response}/></details>)}</section></div>;
 }

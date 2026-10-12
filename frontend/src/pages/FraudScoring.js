@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AIAnalysisDisplay from '../components/AIAnalysisDisplay';
@@ -8,20 +8,24 @@ function FraudScoring({ token }) {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const aiRequest = useRef(null);
   const [aiResult, setAiResult] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   const fetchData = async () => {
+    setLoading(true); setLoadError('');
     try {
       // Backend now returns { data, total, page, totalPages, limit }.
       const res = await axios.get(`${API}/fraud`, { headers, params: { limit: 100 } });
       setItems(Array.isArray(res.data) ? res.data : (res.data?.data || []));
-    } catch (err) { console.error(err); }
+    } catch (err) { setLoadError(err.response?.data?.error || err.message || 'Could not load fraud scores.'); }
     setLoading(false);
   };
 
@@ -36,14 +40,19 @@ function FraudScoring({ token }) {
   };
 
   const handleAIAnalyze = async (id) => {
-    setAiLoading(true); setAiResult(null);
+    if (aiLoading) return;
+    const controller = new AbortController();
+    aiRequest.current = controller;
+    setAiLoading(true); setAiError(''); setAiResult(null);
     try {
-      const res = await axios.post(`${API}/fraud/${id}/analyze`, {}, { headers });
+      const res = await axios.post(`${API}/fraud/${id}/analyze`, {}, { headers, signal: controller.signal });
       setAiResult(res.data.ai_analysis);
     } catch (err) {
-      setAiResult({ error: err.response?.data?.error || 'AI analysis failed' });
+      setAiError(err.code === 'ERR_CANCELED' || err.name === 'CanceledError' ? 'Generation cancelled. No AI result was saved.' : (err.response?.data?.error || err.message || 'AI analysis failed'));
+    } finally {
+      aiRequest.current = null;
+      setAiLoading(false);
     }
-    setAiLoading(false);
   };
 
   const handleSave = async (formData) => {
@@ -61,6 +70,7 @@ function FraudScoring({ token }) {
   const openNew = () => { setEditItem(null); setShowForm(true); };
 
   if (loading) return <div className="loading"><div className="spinner"></div>Loading...</div>;
+  if (loadError) return <div className="loading-error" role="alert"><h2>Fraud scores could not be loaded</h2><p>{loadError}</p><button type="button" className="btn btn-primary" onClick={fetchData}>Retry</button></div>;
 
   return (
     <div>
@@ -181,9 +191,12 @@ function FraudScoring({ token }) {
               <AIAnalysisDisplay analysis={aiResult} />
             </div>
             <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => { setSelectedItem(null); setAiResult(null); }}>Cancel</button>
+              {aiError && <p role="alert" className="full-width">{aiError} {!aiLoading && <button type="button" onClick={() => handleAIAnalyze(selectedItem.id)}>Retry</button>}</p>}
               <button className="btn-ai" onClick={() => handleAIAnalyze(selectedItem.id)} disabled={aiLoading}>
-                {aiLoading ? 'Analyzing...' : 'Run AI Analysis'}
+                {aiLoading ? 'Generating…' : 'Generate with OpenRouter'}
               </button>
+              {aiLoading && <button type="button" className="btn-cancel" onClick={() => aiRequest.current?.abort()}>Cancel AI</button>}
               <button className="btn-edit" onClick={() => openEdit(selectedItem)}>Edit</button>
               <button className="btn-delete" onClick={() => handleDelete(selectedItem.id)}>Delete</button>
             </div>

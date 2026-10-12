@@ -1,428 +1,76 @@
 import GeneratedAiResponse from './GeneratedAiResponse';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import api from '../services/api';
-
-/**
- * AI Center — apply pass 4 (mechanical backlog).
- *
- * Five tabs that wrap the new POST /api/ai/* endpoints:
- *   - expert-witness-narrative
- *   - report-template
- *   - findings-summarize
- *   - evidence-chain-of-custody
- *   - case-strategy
- *
- * Auth: api client injects JWT bearer from localStorage automatically.
- * Errors:
- *   - HTTP 503 (no OpenRouter key) is rendered as a clear "AI not configured"
- *     banner instead of a generic toast.
- *   - HTTP 502 / 4xx / 5xx falls through to the standard error box.
- */
-
-const TABS = [
-  { id: 'expert-witness-narrative', label: 'Expert Witness' },
-  { id: 'report-template', label: 'Report Template' },
-  { id: 'findings-summarize', label: 'Summarize Findings' },
-  { id: 'evidence-chain-of-custody', label: 'Chain of Custody' },
-  { id: 'case-strategy', label: 'Case Strategy' },
+const scenarios=[
+ {label:'Inventory planning',title:'Fictional inventory review exercise',entity:'Fictional Training Company A',jurisdiction:'Training scenario; jurisdiction to be confirmed',scope:'Plan an inventory reconciliation review',finding:'Fictional unverified lead: compare count sheets with the ledger; no misstatement is established.',argument:'Consider timing and data-quality explanations before conclusions.',constraint:'Draft only\nVerify original records before conclusions',period:'FY2026',template:'executive_summary',audience:'executive',exposure:0},
+ {label:'Revenue planning',title:'Fictional revenue review exercise',entity:'Fictional Training Company B',jurisdiction:'Training scenario; jurisdiction to be confirmed',scope:'Plan a revenue cut-off review',finding:'Fictional unverified lead: reconcile shipment timing with revenue entries; no fraud finding is supplied.',argument:'Evaluate delivery terms and legitimate timing differences.',constraint:'Independent review required\nNo accusation or disclosure without verified evidence',period:'Q3 2026',template:'audit_committee',audience:'auditor',exposure:12500},
+ {label:'Expense planning',title:'Fictional expense review exercise',entity:'Fictional Training Company C',jurisdiction:'Training scenario; jurisdiction to be confirmed',scope:'Plan a payment reconciliation review',finding:'Fictional unverified lead: inspect duplicate-looking payments; no loss is established.',argument:'Consider reversals and valid recurring charges.',constraint:'Preserve original source records\nHuman review before decisions',period:'September 2026',template:'litigation_support',audience:'legal',exposure:2500},
 ];
-
-function ResultPanel({ result, error, status, loading }) {
-  if (loading) {
-    return (
-      <div className="card" style={{ padding: '12px', marginTop: '16px' }}>
-        Working...
-      </div>
-    );
-  }
-  if (status === 503) {
-    return (
-      <div
-        className="card"
-        style={{ padding: '12px', marginTop: '16px', borderColor: '#f59e0b', color: '#92400e' }}
-      >
-        AI not configured: this server is missing <code>OPENROUTER_API_KEY</code>.
-        Set it in the backend <code>.env</code> and restart, then retry.
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div
-        className="card"
-        style={{ padding: '12px', marginTop: '16px', borderColor: '#dc2626', color: '#b91c1c' }}
-      >
-        Error: {error}
-      </div>
-    );
-  }
-  if (!result) return null;
-  return (
-    <div className="card" style={{ padding: '12px', marginTop: '16px' }}>
-      <div className="ai-analysis-header">
-        <span className="ai-badge">AI</span>
-        <h3>Result</h3>
-      </div>
-      <GeneratedAiResponse response={result} />
-    </div>
-  );
-}
-
-function useRunner(path) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [status, setStatus] = useState(0);
-  const [result, setResult] = useState(null);
-
-  const run = async (payload) => {
-    setLoading(true);
-    setError('');
-    setStatus(0);
-    setResult(null);
-    try {
-      const res = await api.post(`/ai/${path}`, payload);
-      setResult(res.data);
-    } catch (err) {
-      setStatus(err?.response?.status || 0);
-      setError(err?.response?.data?.error || err.message || 'Request failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return { loading, error, status, result, run };
-}
-
-function ExpertWitnessTab() {
-  const r = useRunner('expert-witness-narrative');
-  const [caseTitle, setCaseTitle] = useState('Acme Holdings vs SEC');
-  const [jurisdiction, setJurisdiction] = useState('SDNY');
-  const [creds, setCreds] = useState('CPA, CFE, 18 yrs forensic experience');
-  const [scope, setScope] = useState('Quantum of damages from inventory misstatement');
-  const [findingsText, setFindingsText] = useState(
-    '- Inventory overstated by $4.2M FY2024\n- 14 channel-stuffing transactions late-Q4'
-  );
-  const [exhibitsText, setExhibitsText] = useState('Exhibit A: GL extract\nExhibit B: Email chain');
-  const [rebuttalsText, setRebuttalsText] = useState('Defense argues normal seasonal variance');
-
-  const submit = () => {
-    r.run({
-      case_title: caseTitle,
-      jurisdiction,
-      expert_credentials: creds,
-      scope,
-      findings: findingsText.split('\n').map((s) => s.trim()).filter(Boolean),
-      exhibits: exhibitsText.split('\n').map((s) => s.trim()).filter(Boolean),
-      opposing_arguments: rebuttalsText.split('\n').map((s) => s.trim()).filter(Boolean),
-    });
-  };
-
-  return (
-    <div>
-      <div className="form-group">
-        <label>Case Title</label>
-        <input value={caseTitle} onChange={(e) => setCaseTitle(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Jurisdiction</label>
-        <input value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Expert Credentials</label>
-        <input value={creds} onChange={(e) => setCreds(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Scope of Opinion</label>
-        <input value={scope} onChange={(e) => setScope(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Findings (one per line)</label>
-        <textarea rows={4} value={findingsText} onChange={(e) => setFindingsText(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Exhibits (one per line)</label>
-        <textarea rows={3} value={exhibitsText} onChange={(e) => setExhibitsText(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Opposing Arguments (one per line)</label>
-        <textarea
-          rows={3}
-          value={rebuttalsText}
-          onChange={(e) => setRebuttalsText(e.target.value)}
-        />
-      </div>
-      <button className="btn btn-primary" disabled={r.loading || !caseTitle} onClick={submit}>
-        {r.loading ? 'Drafting...' : 'Draft Narrative'}
-      </button>
-      <ResultPanel {...r} />
-    </div>
-  );
-}
-
-function ReportTemplateTab() {
-  const r = useRunner('report-template');
-  const [template, setTemplate] = useState('executive_summary');
-  const [entity, setEntity] = useState('Acme Holdings');
-  const [period, setPeriod] = useState('FY2024');
-  const [exposure, setExposure] = useState('4200000');
-  const [findingsText, setFindingsText] = useState(
-    '- Inventory overstatement\n- Channel stuffing\n- Disclosure gaps'
-  );
-  const [recsText, setRecsText] = useState('- Restate FY24\n- Strengthen month-end controls');
-
-  const submit = () => {
-    r.run({
-      template,
-      case_data: { entity_name: entity, period, total_exposure: Number(exposure) || 0 },
-      findings: findingsText.split('\n').map((s) => s.trim()).filter(Boolean),
-      recommendations: recsText.split('\n').map((s) => s.trim()).filter(Boolean),
-    });
-  };
-
-  return (
-    <div>
-      <div className="form-group">
-        <label>Template</label>
-        <select value={template} onChange={(e) => setTemplate(e.target.value)}>
-          <option value="executive_summary">Executive Summary</option>
-          <option value="sec_form">SEC Form</option>
-          <option value="audit_committee">Audit Committee</option>
-          <option value="litigation_support">Litigation Support</option>
-        </select>
-      </div>
-      <div className="form-group">
-        <label>Entity</label>
-        <input value={entity} onChange={(e) => setEntity(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Period</label>
-        <input value={period} onChange={(e) => setPeriod(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Total Exposure ($)</label>
-        <input type="number" value={exposure} onChange={(e) => setExposure(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Findings (one per line)</label>
-        <textarea rows={4} value={findingsText} onChange={(e) => setFindingsText(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Recommendations (one per line)</label>
-        <textarea rows={3} value={recsText} onChange={(e) => setRecsText(e.target.value)} />
-      </div>
-      <button className="btn btn-primary" disabled={r.loading} onClick={submit}>
-        {r.loading ? 'Generating...' : 'Generate Report'}
-      </button>
-      <ResultPanel {...r} />
-    </div>
-  );
-}
-
-function FindingsSummarizeTab() {
-  const r = useRunner('findings-summarize');
-  const [audience, setAudience] = useState('executive');
-  const [findingsJson, setFindingsJson] = useState(
-    JSON.stringify(
-      [
-        { category: 'benford', description: 'High deviation in vendor payments', severity: 'high', dollar_amount: 0 },
-        { category: 'embezzlement', description: 'Suspect: J. Doe', severity: 'critical', dollar_amount: 240000 },
-      ],
-      null,
-      2,
-    ),
-  );
-  const [parseError, setParseError] = useState('');
-
-  const submit = () => {
-    let findings;
-    try {
-      findings = JSON.parse(findingsJson);
-      setParseError('');
-    } catch (e) {
-      setParseError(e.message);
-      return;
-    }
-    r.run({ findings, audience });
-  };
-
-  return (
-    <div>
-      <div className="form-group">
-        <label>Audience</label>
-        <select value={audience} onChange={(e) => setAudience(e.target.value)}>
-          <option value="executive">Executive</option>
-          <option value="auditor">Auditor</option>
-          <option value="legal">Legal</option>
-        </select>
-      </div>
-      <div className="form-group">
-        <label>Findings (JSON array)</label>
-        <textarea
-          rows={10}
-          value={findingsJson}
-          onChange={(e) => setFindingsJson(e.target.value)}
-          style={{ fontFamily: 'monospace' }}
-        />
-        {parseError && <div style={{ color: '#b91c1c' }}>JSON: {parseError}</div>}
-      </div>
-      <button className="btn btn-primary" disabled={r.loading} onClick={submit}>
-        {r.loading ? 'Summarizing...' : 'Summarize'}
-      </button>
-      <ResultPanel {...r} />
-    </div>
-  );
-}
-
-function ChainOfCustodyTab() {
-  const r = useRunner('evidence-chain-of-custody');
-  const [caseId, setCaseId] = useState('CASE-2026-001');
-  const [evidenceJson, setEvidenceJson] = useState(
-    JSON.stringify(
-      [
-        { id: 'EV-001', description: 'GL extract', collected_by: 'Smith', collected_at: '2026-04-12', location: 'HQ', hash: 'abc123' },
-        { id: 'EV-002', description: 'Email PST', collected_by: 'Smith', collected_at: '2026-04-13', location: 'HQ', hash: 'def456' },
-      ],
-      null,
-      2,
-    ),
-  );
-  const [parseError, setParseError] = useState('');
-
-  const submit = () => {
-    let evidence;
-    try {
-      evidence = JSON.parse(evidenceJson);
-      setParseError('');
-    } catch (e) {
-      setParseError(e.message);
-      return;
-    }
-    r.run({ case_id: caseId, evidence });
-  };
-
-  return (
-    <div>
-      <div className="form-group">
-        <label>Case ID</label>
-        <input value={caseId} onChange={(e) => setCaseId(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Evidence (JSON array)</label>
-        <textarea
-          rows={10}
-          value={evidenceJson}
-          onChange={(e) => setEvidenceJson(e.target.value)}
-          style={{ fontFamily: 'monospace' }}
-        />
-        {parseError && <div style={{ color: '#b91c1c' }}>JSON: {parseError}</div>}
-      </div>
-      <button className="btn btn-primary" disabled={r.loading} onClick={submit}>
-        {r.loading ? 'Reviewing...' : 'Review Chain of Custody'}
-      </button>
-      <ResultPanel {...r} />
-    </div>
-  );
-}
-
-function CaseStrategyTab() {
-  const r = useRunner('case-strategy');
-  const [summary, setSummary] = useState(
-    'Suspected revenue recognition fraud at mid-cap public issuer; tip from internal whistleblower.',
-  );
-  const [suspectsText, setSuspectsText] = useState('CFO\nController');
-  const [evidenceSummary, setEvidenceSummary] = useState(
-    'Initial review of Q4 2024 GL shows unusual journal entries totaling $6.1M.',
-  );
-  const [constraintsText, setConstraintsText] = useState('60-day deadline\nNo on-site visit until week 3');
-
-  const submit = () => {
-    r.run({
-      case_summary: summary,
-      suspect_profiles: suspectsText
-        .split('\n')
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((p) => ({ role: p })),
-      evidence_summary: evidenceSummary,
-      constraints: constraintsText.split('\n').map((s) => s.trim()).filter(Boolean),
-    });
-  };
-
-  return (
-    <div>
-      <div className="form-group">
-        <label>Case Summary</label>
-        <textarea rows={4} value={summary} onChange={(e) => setSummary(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Suspect Profiles (one per line)</label>
-        <textarea
-          rows={3}
-          value={suspectsText}
-          onChange={(e) => setSuspectsText(e.target.value)}
-        />
-      </div>
-      <div className="form-group">
-        <label>Evidence Summary</label>
-        <textarea
-          rows={3}
-          value={evidenceSummary}
-          onChange={(e) => setEvidenceSummary(e.target.value)}
-        />
-      </div>
-      <div className="form-group">
-        <label>Constraints (one per line)</label>
-        <textarea
-          rows={3}
-          value={constraintsText}
-          onChange={(e) => setConstraintsText(e.target.value)}
-        />
-      </div>
-      <button className="btn btn-primary" disabled={r.loading || !summary} onClick={submit}>
-        {r.loading ? 'Planning...' : 'Plan Strategy'}
-      </button>
-      <ResultPanel {...r} />
-    </div>
-  );
-}
-
-export default function AICenter() {
-  const [tab, setTab] = useState('expert-witness-narrative');
-
-  let body = null;
-  if (tab === 'expert-witness-narrative') body = <ExpertWitnessTab />;
-  else if (tab === 'report-template') body = <ReportTemplateTab />;
-  else if (tab === 'findings-summarize') body = <FindingsSummarizeTab />;
-  else if (tab === 'evidence-chain-of-custody') body = <ChainOfCustodyTab />;
-  else if (tab === 'case-strategy') body = <CaseStrategyTab />;
-
-  return (
-    <div className="page">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">AI Center</h1>
-          <p className="page-subtitle">
-            Forensic AI helpers for narrative reports, templates, and case planning.
-          </p>
-        </div>
-      </div>
-
-      <div
-        className="tabs"
-        style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}
-      >
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            className={`btn ${tab === t.id ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="card" style={{ padding: '16px' }}>{body}</div>
-    </div>
-  );
+const definitions={
+ 'expert-witness-narrative':{title:'Expert Witness',fields:[['caseTitle','Case title'],['jurisdiction','Jurisdiction'],['creds','Expert credentials'],['scope','Scope of opinion'],['findingsText','Findings (one per line)','textarea'],['exhibitsText','Exhibits (one per line)','textarea'],['rebuttalsText','Opposing arguments (one per line)','textarea']]},
+ 'report-template':{title:'Report Template',fields:[['template','Template',['executive_summary','sec_form','audit_committee','litigation_support']],['entity','Entity'],['period','Period'],['exposure','Total exposure ($)','number'],['findingsText','Findings (one per line)','textarea'],['recsText','Recommendations (one per line)','textarea']]},
+ 'findings-summarize':{title:'Summarize Findings',fields:[['audience','Audience',['executive','auditor','legal']],['findingsJson','Findings (JSON array)','textarea']]},
+ 'evidence-chain-of-custody':{title:'Chain of Custody',fields:[['caseId','Saved case','case-select'],['evidenceJson','Evidence loaded from selected saved case','readonly']]},
+ 'case-strategy':{title:'Case Strategy',fields:[['summary','Case summary','textarea'],['suspectsText','Profiles (one per line)','textarea'],['evidenceSummary','Evidence summary','textarea'],['constraintsText','Constraints (one per line)','textarea']]},
+};
+const initial={caseTitle:'',jurisdiction:'',creds:'',scope:'',findingsText:'',exhibitsText:'',rebuttalsText:'',template:'executive_summary',entity:'',period:'',exposure:'',recsText:'',audience:'executive',findingsJson:'[]',caseId:'',evidenceJson:'[]',summary:'',suspectsText:'',evidenceSummary:'',constraintsText:''};
+const lines=value=>String(value).split('\n').map(v=>v.trim()).filter(Boolean);
+function array(text,label){const value=JSON.parse(text);if(!Array.isArray(value)||!value.length)throw Error(label+' must be a non-empty array.');return value;}
+const historyKey=()=>{try{return `forensic-ai-history:${JSON.parse(localStorage.getItem('user')||'{}').id||'anonymous'}`;}catch{return 'forensic-ai-history:anonymous';}};
+const readHistory=()=>{try{const value=JSON.parse(localStorage.getItem(historyKey())||'[]');return Array.isArray(value)?value:[];}catch{return [];}};
+export default function AICenter(){
+ const [tab,setTab]=useState('expert-witness-narrative'),[values,setValues]=useState(initial),[notice,setNotice]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState(''),[result,setResult]=useState(null),[cases,setCases]=useState([]),[sourceError,setSourceError]=useState(''),[sourceLoading,setSourceLoading]=useState(false),[retry,setRetry]=useState(0),[history,setHistory]=useState(readHistory);
+ const pending=useRef(false),requestRef=useRef(null),lastRequest=useRef(null),tool=definitions[tab];
+ useEffect(()=>{if(tab!=='evidence-chain-of-custody')return;let active=true;setSourceLoading(true);setSourceError('');api.get('/governed-cases').then(response=>{if(!Array.isArray(response.data))throw Error('Saved cases returned an invalid response.');if(active)setCases(response.data);}).catch(err=>{if(active){setCases([]);setSourceError(err.response?.data?.error||err.message||'Could not load saved cases.');}}).finally(()=>{if(active)setSourceLoading(false);});return()=>{active=false;};},[tab,retry]);
+ const fill=(sample,index)=>{
+   setValues(current=>{
+     if(tab==='expert-witness-narrative')return {...current,caseTitle:sample.title,jurisdiction:sample.jurisdiction,creds:current.creds||'No professional credential claim; fictional practice draft only.',scope:sample.scope,findingsText:sample.finding,exhibitsText:current.exhibitsText||'No verified exhibits supplied; fictional planning context only.',rebuttalsText:sample.argument};
+     if(tab==='report-template')return {...current,template:sample.template,entity:sample.entity,period:sample.period,exposure:String(sample.exposure),findingsText:sample.finding,recsText:'Verify original records\nDocument limitations\nObtain independent human review'};
+     if(tab==='findings-summarize')return {...current,audience:sample.audience,findingsJson:JSON.stringify([{category:'fictional_training',description:sample.finding,severity:'unverified',dollar_amount:sample.exposure}],null,2)};
+     if(tab==='case-strategy')return {...current,summary:sample.title+'; plan a review without asserting wrongdoing.',suspectsText:'Fictional finance role for workflow planning; no person is accused.',evidenceSummary:'No verified case evidence supplied. '+sample.finding,constraintsText:sample.constraint};
+     const valid=cases.filter(row=>Array.isArray(row.input?.evidence)&&row.input.evidence.length),saved=valid.find(row=>String(row.id)===current.caseId)||valid[index%valid.length];
+     if(current.evidenceJson.trim()&&current.evidenceJson.trim()!=='[]')return current;
+     return {...current,caseId:saved?String(saved.id):current.caseId,evidenceJson:saved?JSON.stringify(saved.input.evidence,null,2):current.evidenceJson};
+   });
+   setNotice(tab==='evidence-chain-of-custody'?'Actual case references and evidence are preserved. Only existing saved evidence can fill these fields; missing hashes and custody facts must be supplied manually.':'All required and optional drafting fields filled. Examples are fictional, unverified practice; existing credentials and exhibit descriptions are preserved.');
+ };
+ const runRequest=async request=>{
+   if(pending.current)return;
+   const controller=new AbortController();requestRef.current=controller;lastRequest.current=request;pending.current=true;setLoading(true);setError('');setNotice('');setResult(null);
+   try{
+     const response=await api.post('/ai/'+request.route,request.body,{signal:controller.signal});
+     setResult(response.data);
+     const entry={id:`${Date.now()}-${request.route}`,tool:definitions[request.route]?.title||request.route,generatedAt:new Date().toISOString(),response:response.data};
+     setHistory(current=>{const next=[entry,...current].slice(0,12);try{localStorage.setItem(historyKey(),JSON.stringify(next));}catch{}return next;});
+   }catch(err){if(err.code==='ERR_CANCELED'||err.name==='CanceledError')setNotice('Generation cancelled. No output was saved.');else setError(err.response?.data?.error||err.message||'Request failed');}
+   finally{pending.current=false;requestRef.current=null;setLoading(false);}
+ };
+ const submit=async event=>{
+   event.preventDefault();if(pending.current)return;setError('');
+   try{
+     if(!localStorage.getItem('token'))throw Error('Sign in before generating.');let body;
+     if(tab==='expert-witness-narrative'){if(!values.caseTitle.trim())throw Error('Case title is required.');body={case_title:values.caseTitle,jurisdiction:values.jurisdiction,expert_credentials:values.creds,scope:values.scope,findings:lines(values.findingsText),exhibits:lines(values.exhibitsText),opposing_arguments:lines(values.rebuttalsText)};}
+     if(tab==='report-template'){const exposure=Number(values.exposure);if(values.exposure===''||!Number.isFinite(exposure)||exposure<0)throw Error('Enter a valid non-negative exposure.');body={template:values.template,case_data:{entity_name:values.entity,period:values.period,total_exposure:exposure},findings:lines(values.findingsText),recommendations:lines(values.recsText)};}
+     if(tab==='findings-summarize')body={findings:array(values.findingsJson,'Findings'),audience:values.audience};
+     if(tab==='case-strategy'){if(!values.summary.trim())throw Error('Case summary is required.');body={case_summary:values.summary,suspect_profiles:lines(values.suspectsText).map(role=>({role})),evidence_summary:values.evidenceSummary,constraints:lines(values.constraintsText)};}
+     if(tab==='evidence-chain-of-custody'){
+       if(sourceLoading||sourceError)throw Error('Load saved cases before reviewing.');
+       if(!cases.some(row=>String(row.id)===values.caseId))throw Error('Select a genuine saved case.');
+       const evidence=array(values.evidenceJson,'Evidence');
+       if(evidence.some(item=>!item.id||!/^[a-f0-9]{64}$/i.test(item.sha256||item.hash||'')||!(item.source||item.description)||!(item.acquiredAt||item.collected_at)||!(item.custodian||item.collected_by)))throw Error('Actual evidence references, full hashes, acquisition dates and custodians are required.');
+       body={case_id:values.caseId,evidence};
+     }
+     await runRequest({route:tab,body});
+   }catch(err){setError(err.response?.data?.error||err.message||'Request failed');}
+ };
+ const validCases=cases.filter(row=>Array.isArray(row.input?.evidence)&&row.input.evidence.length);
+ const selectCase=id=>{const saved=validCases.find(row=>String(row.id)===String(id));setValues(current=>({...current,caseId:saved?String(saved.id):'',evidenceJson:saved?JSON.stringify(saved.input.evidence,null,2):'[]'}));};
+ const chainUnavailable=tab==='evidence-chain-of-custody'&&!sourceLoading&&!sourceError&&validCases.length===0;
+ const chainGate=tab==='evidence-chain-of-custody'&&(sourceLoading||Boolean(sourceError)||chainUnavailable);
+ const chainBlocked=tab==='evidence-chain-of-custody'&&(sourceLoading||Boolean(sourceError)||chainUnavailable||!validCases.some(row=>String(row.id)===values.caseId)||values.evidenceJson.trim()==='[]');
+ return <div className="page"><h1>AI Center</h1><p>Draft reports and review plans with OpenRouter. AI output requires verification before use.</p><nav className="tabs">{Object.entries(definitions).map(([key,item])=><button type="button" disabled={loading} key={key} onClick={()=>{setTab(key);setResult(null);setError('');setNotice('');}}>{item.title}</button>)}</nav>
+ {chainGate?<section className="card governed-source-gate" data-testid="chain-of-custody-gate" style={{padding:16}}><h2>Chain of Custody</h2><p>The request form is not mounted until this signed-in actor has a genuine saved case containing evidence IDs, full hashes, acquisition dates, source descriptions, and custodians. No custody fact or evidence is invented.</p>{sourceLoading&&<p role="status">Loading saved cases…</p>}{sourceError&&<p role="alert">Saved cases could not be loaded: {sourceError} <button type="button" onClick={()=>setRetry(v=>v+1)}>Retry saved cases</button></p>}{chainUnavailable&&<><p role="status">Saved cases: none with custody evidence.</p><button type="button" onClick={()=>setRetry(v=>v+1)}>Refresh saved cases</button></>}</section>:<form onSubmit={submit} className="card" style={{padding:16}}><h2>{tool.title}</h2><div className="ai-preset-bar"><strong>{tab==='evidence-chain-of-custody'?'Saved evidence examples':'Complete examples'}</strong><p>{tab==='evidence-chain-of-custody'?'Each example selects an existing saved case and preserves its genuine custody evidence.':'Fill this tool’s required and optional drafting fields, then generate separately.'}</p>{scenarios.map((sample,index)=><button type="button" key={sample.label} disabled={loading} onClick={()=>fill(sample,index)}>{sample.label}</button>)}{notice&&<p role="status">{notice}</p>}</div>
+ {tab==='evidence-chain-of-custody'&&<p>Saved cases: {cases.map(row=>row.id).join(', ')}. No custody attestation or evidence is invented.</p>}
+ {tool.fields.map(([key,label,type='text'])=><div className="form-group" key={key}><label htmlFor={`forensic-${key}`}>{label}</label>{Array.isArray(type)?<select id={`forensic-${key}`} name={key} value={values[key]} onChange={e=>setValues({...values,[key]:e.target.value})}>{type.map(value=><option key={value} value={value}>{value.replace(/_/g,' ')}</option>)}</select>:type==='case-select'?<select id={`forensic-${key}`} name={key} value={values[key]} disabled={sourceLoading||Boolean(sourceError)} onChange={e=>selectCase(e.target.value)}><option value="">Select a saved case with evidence</option>{validCases.map(row=><option key={row.id} value={String(row.id)}>{row.id} · {row.status||'draft'}</option>)}</select>:type==='readonly'?<textarea id={`forensic-${key}`} name={key} rows={8} value={values[key]} readOnly aria-readonly="true"/>:type==='textarea'?<textarea id={`forensic-${key}`} name={key} rows={5} value={values[key]} onChange={e=>setValues({...values,[key]:e.target.value})}/>:<input id={`forensic-${key}`} name={key} type={type} min={type==='number'?0:undefined} value={values[key]} onChange={e=>setValues({...values,[key]:e.target.value})}/>}</div>)}
+ {error&&<p role="alert">{error} {lastRequest.current&&<button type="button" disabled={loading} onClick={()=>runRequest(lastRequest.current)}>Retry</button>}</p>}<div className="ai-request-actions"><button type="submit" className="btn btn-primary" disabled={loading||!localStorage.getItem('token')||chainBlocked}>{loading?'Generating…':'Generate with OpenRouter'}</button>{loading&&<button type="button" className="btn-cancel" onClick={()=>requestRef.current?.abort()}>Cancel</button>}</div></form>}{result!==null&&<GeneratedAiResponse response={result}/>}<section className="ai-history" aria-label="AI generation history"><div className="ai-history-heading"><div><h2>Generation history</h2><p>Successful outputs for this signed-in browser profile. Drafts require independent verification.</p></div>{history.length>0&&<button type="button" onClick={()=>{setHistory([]);try{localStorage.removeItem(historyKey());}catch{}}}>Clear history</button>}</div>{history.length===0?<p>No successful generations yet.</p>:history.map(entry=><details key={entry.id} className="ai-history-item"><summary><strong>{entry.tool}</strong><span>{new Date(entry.generatedAt).toLocaleString()}</span></summary><GeneratedAiResponse response={entry.response}/></details>)}</section></div>;
 }

@@ -65,6 +65,10 @@ router.post('/:id/analyze', async (req, res) => {
     const item = await TransactionAnomaly.findByPk(req.params.id);
     if (!item) return res.status(404).json({ error: 'Not found' });
     const aiResult = await analyzeAnomaly(item.toJSON());
+    if (aiResult?.error) {
+      const unavailable = String(aiResult.error).includes('OPENROUTER_API_KEY not configured');
+      return res.status(unavailable ? 503 : 502).json({ error: unavailable ? 'AI not configured (OPENROUTER_API_KEY missing)' : aiResult.error });
+    }
     await item.update({ ai_analysis: aiResult });
     res.json({ item, ai_analysis: aiResult });
   } catch (error) {

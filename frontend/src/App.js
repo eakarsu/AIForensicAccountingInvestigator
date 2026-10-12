@@ -141,6 +141,13 @@ function App() {
           </div>
           </header>
 
+          {user?.email === 'analyst@forensic.com' && (
+            <div className="demo-workspace-banner" role="status">
+              <strong>Fictional evaluation workspace</strong>
+              <span>Records and AI examples shown in this demo are training drafts, not verified transactions, findings, evidence, approvals, or allegations.</span>
+            </div>
+          )}
+
           <main className="main-content">
           <Routes>
         <Route path="/insights/timeline" element={<TimelineView />} />

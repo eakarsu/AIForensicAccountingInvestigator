@@ -13,6 +13,15 @@ function partyTo(transaction) {
   return String(transaction.to_party || transaction.to || transaction.destination_party || transaction.destination || '').trim();
 }
 
+function providerError(res, result) {
+  if (!result || !result.error) return false;
+  const unavailable = String(result.error).includes('OPENROUTER_API_KEY not configured');
+  res.status(unavailable ? 503 : 502).json({
+    error: unavailable ? 'AI not configured (OPENROUTER_API_KEY missing)' : result.error,
+  });
+  return true;
+}
+
 /**
  * POST /api/network/analyze
  *
@@ -89,16 +98,9 @@ Return STRICT JSON:
   "disclaimer": "AI-generated; not legal advice."
 }`;
 
-    let analysis;
-    try {
-      const aiText = await callOpenRouter(systemPrompt, userMessage, { temperature: 0.2 });
-      analysis = parseAIJson(aiText) || { raw: aiText };
-    } catch (aiErr) {
-      analysis = {
-        summary: 'AI unavailable; returning local graph stats only.',
-        error: aiErr.message,
-      };
-    }
+    const aiText = await callOpenRouter(systemPrompt, userMessage, { temperature: 0.2 });
+    if (providerError(res, aiText)) return;
+    const analysis = parseAIJson(aiText) || { raw: aiText };
 
     res.json({
       stats: { parties: partyStats.length, transactions: transactions.length, reciprocal_pairs: reciprocalPairs.length },
@@ -165,13 +167,9 @@ Return JSON:
   "disclaimer": "AI-generated; review manually."
 }`;
 
-    let analysis;
-    try {
-      const aiText = await callOpenRouter(systemPrompt, userMessage, { temperature: 0.2 });
-      analysis = parseAIJson(aiText) || { raw: aiText };
-    } catch (aiErr) {
-      analysis = { summary: 'AI unavailable; returning local clusters.', error: aiErr.message };
-    }
+    const aiText = await callOpenRouter(systemPrompt, userMessage, { temperature: 0.2 });
+    if (providerError(res, aiText)) return;
+    const analysis = parseAIJson(aiText) || { raw: aiText };
 
     res.json({
       cluster_count: clusters.length,

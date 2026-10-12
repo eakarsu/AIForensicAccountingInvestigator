@@ -9,6 +9,18 @@ require('dotenv').config({ path: path.join(__dirname, '..', '..', '..', '.env') 
 
 const router = express.Router();
 
+function sessionFor(user) {
+  const token = jwt.sign(
+    { id: user.id, email: user.email, name: user.name, role: user.role },
+    getJwtSecret(),
+    { expiresIn: '24h' }
+  );
+  return {
+    token,
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, email_verified: user.email_verified }
+  };
+}
+
 // Login
 router.post('/login', async (req, res) => {
   try {
@@ -19,15 +31,23 @@ router.post('/login', async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name, role: user.role },
-      getJwtSecret(),
-      { expiresIn: '24h' }
-    );
-    res.json({
-      token,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role, email_verified: user.email_verified }
-    });
+    res.json(sessionFor(user));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// One-click evaluation login. It can only select a pre-existing configured
+// account, never creates or modifies one, and is unavailable in production.
+router.post('/demo', async (_req, res) => {
+  try {
+    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEMO_LOGIN === 'false') {
+      return res.status(404).json({ error: 'Demo login is unavailable.' });
+    }
+    const email = process.env.DEMO_USER_EMAIL || 'analyst@forensic.com';
+    const user = await User.findOne({ where: { email } });
+    if (!user) return res.status(503).json({ error: 'Configured demo account is unavailable.' });
+    res.json({ ...sessionFor(user), demo: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

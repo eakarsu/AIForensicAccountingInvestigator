@@ -48,7 +48,7 @@ export const resourceApi = (resource) => ({
   create: (payload) => api.post(`/${resource}`, payload),
   update: (id, payload) => api.put(`/${resource}/${id}`, payload),
   remove: (id) => api.delete(`/${resource}/${id}`),
-  analyze: (id, payload = {}) => api.post(`/${resource}/${id}/analyze`, payload),
+  analyze: (id, payload = {}, config = {}) => api.post(`/${resource}/${id}/analyze`, payload, config),
 });
 
 export const authApi = {

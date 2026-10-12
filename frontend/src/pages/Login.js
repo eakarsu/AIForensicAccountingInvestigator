@@ -8,12 +8,12 @@ function Login({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, demoLoginCredentials) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post(`${API}/auth/login`, { email, password });
+      const res = await axios.post(`${API}/auth/login`, { email: (demoLoginCredentials?.email ?? email), password: (demoLoginCredentials?.password ?? password) });
       onLogin(res.data.token, res.data.user);
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
@@ -21,9 +21,18 @@ function Login({ onLogin }) {
     setLoading(false);
   };
 
-  const fillCredentials = () => {
-    setEmail(process.env.REACT_APP_DEMO_EMAIL || '');
-    setPassword(process.env.REACT_APP_DEMO_PASSWORD || '');
+  const handleDemoLogin = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await axios.post(`${API}/auth/demo`);
+      onLogin(res.data.token, res.data.user);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Demo login is unavailable.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,11 +72,10 @@ function Login({ onLogin }) {
           </button>
         </form>
 
-        {process.env.REACT_APP_ENABLE_DEMO_CREDENTIAL_AUTOFILL === 'true' && (
-          <button className="btn-fill" onClick={fillCredentials}>
-            Auto Fill Demo Credentials
-          </button>
-        )}
+        <button type="button" disabled={loading} className="btn-fill" onClick={handleDemoLogin}>
+          {loading ? 'Opening demo workspace…' : 'Log In as Demo'}
+        </button>
+        <p className="login-demo-note">Uses the configured evaluation account. No password is exposed or changed.</p>
       </div>
     </div>
   );

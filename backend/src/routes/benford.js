@@ -77,6 +77,10 @@ router.post('/:id/analyze', async (req, res) => {
     const enriched = stats ? { ...item.toJSON(), local_stats: stats } : item.toJSON();
 
     const aiResult = await analyzeBenford(enriched);
+    if (aiResult?.error) {
+      const unavailable = String(aiResult.error).includes('OPENROUTER_API_KEY not configured');
+      return res.status(unavailable ? 503 : 502).json({ error: unavailable ? 'AI not configured (OPENROUTER_API_KEY missing)' : aiResult.error });
+    }
     await item.update({ ai_analysis: { ...aiResult, local_stats: stats || null } });
     res.json({ item, ai_analysis: aiResult, local_stats: stats });
   } catch (error) {

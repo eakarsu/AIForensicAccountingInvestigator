@@ -7,6 +7,7 @@ function InvestigationReports({ token }) {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -14,11 +15,12 @@ function InvestigationReports({ token }) {
   const headers = { Authorization: `Bearer ${token}` };
 
   const fetchData = async () => {
+    setLoading(true); setLoadError('');
     try {
       // Backend now returns { data, total, page, totalPages, limit }.
       const res = await axios.get(`${API}/reports`, { headers, params: { limit: 100 } });
       setItems(Array.isArray(res.data) ? res.data : (res.data?.data || []));
-    } catch (err) { console.error(err); }
+    } catch (err) { setLoadError(err.response?.data?.error || err.message || 'Could not load investigation reports.'); }
     setLoading(false);
   };
 
@@ -47,6 +49,7 @@ function InvestigationReports({ token }) {
   const openNew = () => { setEditItem(null); setShowForm(true); };
 
   if (loading) return <div className="loading"><div className="spinner"></div>Loading...</div>;
+  if (loadError) return <div className="loading-error" role="alert"><h2>Investigation reports could not be loaded</h2><p>{loadError}</p><button type="button" className="btn btn-primary" onClick={fetchData}>Retry</button></div>;
 
   return (
     <div>
@@ -133,6 +136,7 @@ function InvestigationReports({ token }) {
               </div>
             </div>
             <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setSelectedItem(null)}>Cancel</button>
               <button className="btn-edit" onClick={() => openEdit(selectedItem)}>Edit</button>
               <button className="btn-delete" onClick={() => handleDelete(selectedItem.id)}>Delete</button>
             </div>

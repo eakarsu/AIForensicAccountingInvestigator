@@ -11,7 +11,9 @@ const { AuditLog } = require('../models');
  */
 function auditLogger(req, res, next) {
   const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-  if (!writeMethods.has(req.method)) return next();
+  const readOnlyPostPaths = new Set(['/api/auth/login', '/api/auth/demo']);
+  const readOnlyAiRequest = req.method === 'POST' && /^\/api\/(?:cf-|gap-)/.test(req.path);
+  if (!writeMethods.has(req.method) || readOnlyPostPaths.has(req.path) || readOnlyAiRequest) return next();
   if (!req.path.startsWith('/api/')) return next();
 
   res.on('finish', () => {
