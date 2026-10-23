@@ -116,6 +116,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api', aiRateLimiter, require('../routes/batch03Gaps'));
 
 // Custom Views — mounted BEFORE any 404 / error handler.
+app.use('/api/feature-pack', require('./routes/featurePack'));
 app.use('/api/custom-views', require('../routes/customViews'));
 
 // Global error handler — keep CORS errors visible.
